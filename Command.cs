@@ -87,26 +87,44 @@ namespace DuckBot
             Content = content;
         }
         
+        public string CmdEngine(string content, MessageEventArgs e)
+        {
+            return cmdMatch.Replace(content, (match) =>
+            {
+                string cmd = match.Groups[1].Value;
+                if (cmdProc.ContainsKey(cmd))
+                {
+                    string[] args = match.Groups[2].Success ? match.Groups[2].Value.Split(',') : new string[0];
+                    return cmdProc[cmd](args, e);
+                }
+                else return match.Value;
+            });
+        }
+
         public string Run(string user, string userAsMention, string input, MessageEventArgs e)
         {
             try
             {
-                if (Type == CmdType.Text)
-                {
-                    return cmdMatch.Replace(Content, (match) =>
-                    {
-                        string cmd = match.Groups[1].Value;
-                        if (cmdProc.ContainsKey(cmd))
-                        {
-                            string[] args = match.Groups[2].Success ? match.Groups[2].Value.Split(',') : new string[0];
-                            return cmdProc[cmd](args, e);
-                        }
-                        else return match.Value;
-                    });
-                }
+                if (Type == CmdType.Text) return CmdEngine(Content, e);
                 else if (Type == CmdType.Switch)
                 {
-                    return "NYI";
+                    string[] cases = Content.Split('|');
+                    cases[0] = CmdEngine(cases[0].Trim(), e);
+                    for (int i = 1; i < cases.Length; ++i)
+                    {
+                        cases[i] = cases[i].Trim();
+                        if (cases[i].StartsWith("default"))
+                            return CmdEngine(cases[i].Substring(cases[i].IndexOf(' ') + 1), e);
+                        else if (cases[i].StartsWith("case"))
+                        {
+                            string match = cases[i].Substring(cases[i].IndexOf('"') + 1);
+                            int ix = match.IndexOf('"');
+                            string data = match.Substring(ix + 1).Trim();
+                            if (cases[0] == match.Remove(ix))
+                                return CmdEngine(data, e);
+                        }
+                    }
+                    return "Switch didn't return anything";
                 }
                 else if (Type == CmdType.Lua)
                 {
