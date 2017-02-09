@@ -1,19 +1,17 @@
 ﻿using System;
 using System.IO;
 using System.Text;
-using System.CodeDom;
 using System.Reflection;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using Microsoft.CSharp;
 using Discord;
 
 namespace DuckBot
 {
     public class Command : IBinary
     {
-        private static readonly Regex cmdMatch = new Regex("(%.+?%)");
+        private static readonly Regex cmdMatch = new Regex("%(.+?)(:.+?)*%");
 
         internal delegate string CmdAct(string[] args, MessageEventArgs e);
         internal static readonly Dictionary<string, CmdAct> cmdProc = new Dictionary<string, CmdAct>();
