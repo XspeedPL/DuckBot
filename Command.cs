@@ -80,7 +80,7 @@ namespace DuckBot
             Creator = creator;
             CreationDate = DateTime.UtcNow;
             CmdType ctype;
-            if (!Enum.TryParse(type, out ctype)) ctype = CmdType.Text;
+            if (!Enum.TryParse(type, true, out ctype)) ctype = CmdType.Text;
             Type = ctype;
             Content = content;
         }
