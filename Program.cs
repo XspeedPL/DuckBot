@@ -46,7 +46,7 @@ namespace DuckBot
             dclient.UserUpdated += UserUpdated;
             dclient.ExecuteAndWait(async () =>
             {
-                await dclient.Connect("", TokenType.Bot);
+                await dclient.Connect("MjY1MTEwNDEzNDIxNTc2MTky.C0qW1g.EkGzwhfFyVKI6qtBQOjFMGP0zNA", TokenType.Bot);
             });
         }
 
