@@ -43,11 +43,11 @@ namespace DuckBot
             return removed;
         }
 
-        public void Deliver(Channel recipent, bool remove = true)
+        public void Deliver(Server srv, Channel recipent, bool remove = true)
         {
             foreach (KeyValuePair<ulong, string[]> kvp in queue)
             {
-                string sender = GetUserNameIdk(kvp.Key);
+                string sender = srv.GetUser(kvp.Key).Nickname;
                 string msg = "Messages from " + sender + ":";
                 for (int i = 0; i < 5; ++i)
                 {

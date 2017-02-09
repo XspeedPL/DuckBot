@@ -40,12 +40,12 @@ namespace DuckBot
                 x.AllowMentionPrefix = true;
                 x.HelpMode = HelpMode.Public;
             });
-
-            string token = "";
             CreateCommands();
+            dclient.MessageReceived += MessageRecieved;
+            dclient.UserUpdated += UserUpdated;
             dclient.ExecuteAndWait(async () =>
             {
-                await dclient.Connect(token, TokenType.Bot);
+                await dclient.Connect("", TokenType.Bot);
             });
         }
 
@@ -70,8 +70,6 @@ namespace DuckBot
         public void CreateCommands()
         {
             CommandService svc = dclient.GetService<CommandService>();
-            dclient.MessageReceived += MessageRecieved;
-            dclient.UserUpdated += UserUpdated;
 
             svc.CreateCommand("add")
                 .Description("Adds a function definition")
@@ -235,7 +233,7 @@ namespace DuckBot
                 {
                     Inbox i = s.Msgs[e.After.Id];
                     Channel toSend = dclient.CreatePrivateChannel(e.After.Id).Result;
-                    i.Deliver(toSend);
+                    i.Deliver(e.Server, toSend);
                 }
             }
         }
