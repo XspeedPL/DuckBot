@@ -92,7 +92,7 @@ namespace DuckBot
                 string cmd = match.Groups[1].Value;
                 if (cmdProc.ContainsKey(cmd))
                 {
-                    string[] args = match.Groups[2].Success ? match.Groups[2].Value.Split(',') : new string[0];
+                    string[] args = match.Groups[2].Success ? match.Groups[2].Value.Substring(1).Split(',') : new string[0];
                     return cmdProc[cmd](args, e);
                 }
                 else return match.Value;
