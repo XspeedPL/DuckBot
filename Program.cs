@@ -247,8 +247,14 @@ namespace DuckBot
             {
                 string command = e.Message.Text.Substring(1);
                 int ix = command.IndexOf(' ');
-                string input = command.Substring(ix + 1);
-                command = command.Remove(ix).ToLowerInvariant();
+                string input;
+                if (ix == -1) input = "";
+                else
+                {
+                    input = command.Substring(ix + 1);
+                    command = command.Remove(ix);
+                }
+                command = command.ToLowerInvariant();
                 Session s = CreateSession(e.Server.Id);
                 if (s.Cmds.ContainsKey(command))
                 {
