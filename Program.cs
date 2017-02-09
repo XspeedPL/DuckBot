@@ -1,59 +1,40 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using Discord.Net;
-using Discord.API.Client;
+using System.Collections.Generic;
 using Discord;
 using Discord.Commands;
-using Newtonsoft.Json;
 using System.IO;
 
 namespace DuckBot
 {
-    public class Program
+    internal sealed class Program
     {
+        public static readonly Random Rand = new Random();
 
         static void Main(string[] args)
         {
-            if (File.Exists(DuckData.saveFile))
+            if (!DuckData.SessionsDir.Exists) DuckData.SessionsDir.Create();
+            foreach (FileInfo fi in DuckData.SessionsDir.EnumerateFiles("session_*.dat"))
             {
-                using (StreamReader reader = new StreamReader(DuckData.saveFile))
-                {
-                    string toDeserialize = reader.ReadToEnd();
-                    if (toDeserialize != "") DuckData.commandDB = JsonConvert.DeserializeObject<Dictionary<ulong, Dictionary<string, Command>>>(toDeserialize);
-                    reader.Close();
-                }
-
-            }
-            if (File.Exists(DuckData.changelogsFile))
-            {
-                using (StreamReader reader = new StreamReader(DuckData.changelogsFile))
-                {
-                    string toDeserialize = reader.ReadToEnd();
-                    if (toDeserialize != "") DuckData.showChanges = JsonConvert.DeserializeObject<Dictionary<ulong, bool>>(toDeserialize);
-                    reader.Close();
-                }
-            }
-            else
-            {
-                File.Create(DuckData.changelogsFile);
+                ulong id = ulong.Parse(fi.Name.Remove(fi.Name.Length - 4).Substring(8));
+                Session s = new Session(id);
+                using (BinaryReader br = new BinaryReader(fi.OpenRead()))
+                    s.Load(br);
             }
             new Program().Start();
         }
-        private DiscordClient _client;
+
+        private DiscordClient dclient;
         public void Start()
         {
-           
-            _client = new DiscordClient(x =>
+            dclient = new DiscordClient(x =>
             {
                 x.AppName = "DuckBot";
                 x.LogLevel = LogSeverity.Info;
                 x.LogHandler = Log;
 
             });
-            _client.UsingCommands(x =>
+            dclient.UsingCommands(x =>
             {
                 x.PrefixChar = '>';
                 x.AllowMentionPrefix = true;
@@ -62,19 +43,38 @@ namespace DuckBot
 
             string token = "";
             CreateCommands();
-            _client.ExecuteAndWait(async () =>
+            dclient.ExecuteAndWait(async () =>
             {
-                await _client.Connect(token, TokenType.Bot);
+                await dclient.Connect(token, TokenType.Bot);
             });
         }
+
+        public Session CreateSession(ulong sid)
+        {
+            if (!DuckData.ServerSessions.ContainsKey(sid))
+            {
+                Session s = new Session(sid);
+                DuckData.ServerSessions.Add(sid, s);
+                return s;
+            }
+            else return DuckData.ServerSessions[sid];
+        }
+
+        public void SaveSession(Session s)
+        {
+            string file = Path.Combine(DuckData.SessionsDir.FullName, "session_" + s.ServerID + ".dat");
+            using (BinaryWriter bw = new BinaryWriter(new FileStream(file, FileMode.Create, FileAccess.Write)))
+                s.Save(bw);
+        }
+
         public void CreateCommands()
         {
-            CommandService cService = _client.GetService<CommandService>();
-            _client.MessageReceived += MessageRecieved;
-            _client.UserUpdated += UserUpdated;
+            CommandService svc = dclient.GetService<CommandService>();
+            dclient.MessageReceived += MessageRecieved;
+            dclient.UserUpdated += UserUpdated;
 
-            cService.CreateCommand("add")
-                .Description("Adds a command")
+            svc.CreateCommand("add")
+                .Description("Adds a function definition")
                 .Parameter("type", ParameterType.Required)
                 .Parameter("name", ParameterType.Required)
                 .Parameter("content", ParameterType.Unparsed)
@@ -82,221 +82,186 @@ namespace DuckBot
                 {
                     try
                     {
-                        if (!DuckData.showChanges.ContainsKey(e.Server.Id))
-                        {
-                            DuckData.showChanges[e.Server.Id] = false;
-                            string save = JsonConvert.SerializeObject(DuckData.showChanges, Formatting.Indented);
-                            File.WriteAllText(DuckData.changelogsFile, save);
-                        }
-                        if (!DuckData.commandDB.ContainsKey(e.Server.Id))
-                        {
-                            DuckData.commandDB[e.Server.Id] = new Dictionary<string, Command>();
-                        }
+                        Session s = CreateSession(e.Server.Id);
+                        string cmd = e.Args[1].ToLowerInvariant();
 
-                        string previousCommand = "";
-                        if (DuckData.commandDB.Count > 0)
+                        string oldContent = "";
+                        if (s.Cmds.ContainsKey(cmd))
                         {
-                            previousCommand = DuckData.commandDB[e.Server.Id].ContainsKey(e.Args[1]) ? DuckData.commandDB[e.Server.Id][e.Args[1]].Content : "None.";
-                            if (DuckData.commandDB[e.Server.Id].ContainsKey(e.Args[1]))
-                            {
-                                DuckData.commandDB[e.Server.Id].Remove(e.Args[1]);
-                            }
+                            oldContent = s.Cmds[cmd].Content;
+                            s.Cmds.Remove(cmd);
                         }
-                        if (e.Args[0].ToLower() == "csharp" || e.Args[0].ToLower() == "csharpscript")
+                        if (e.Args[0].ToLower() == "csharp")
                         {
-                            if (DuckData.csharpCommandAdders.Contains(e.User.Id))
+                            if (DuckData.CSharpCommandAdders.Contains(e.User.Id))
                             {
-                                if (e.User.Id != 168285549088604160 && (e.Args[2].Contains("System.IO") || e.Args[2].Contains("Environment.Exit")))
+                                if (e.User.Id != DuckData.SuperUser && (e.Args[2].Contains("System.IO") || e.Args[2].Contains("Environment.Exit")))
                                 {
                                     await e.Channel.SendMessage("Someting in this code is not permitted to use in DuckBot");
                                     return;
                                 }
-                                else DuckData.commandDB[e.Server.Id].Add(e.Args[1], new Command(e.Args[0], e.Args[2], e.User.Name));
+                                else s.Cmds.Add(cmd, new Command(e.Args[0], e.Args[2], e.User.Name));
                             }
                         }
-                        else if (e.Args[0].ToLower() == "whitelist" && e.User.Id == 168285549088604160)
+                        else if (e.Args[0].ToLower() == "whitelist")
                         {
-                            DuckData.csharpCommandAdders.Add(ulong.Parse(e.Args[1]));
+                            if (e.User.Id == DuckData.SuperUser)
+                                DuckData.CSharpCommandAdders.Add(ulong.Parse(e.Args[1]));
+                            else await e.Channel.SendMessage("You don't have sufficent permissons.");
+                            return;
                         }
-                        else
-                        {
-                            DuckData.commandDB[e.Server.Id].Add(e.Args[1], new Command(e.Args[0], e.Args[2], e.User.Name));
-                        }
-                        string toSave = JsonConvert.SerializeObject(DuckData.commandDB, Formatting.Indented);
-
-                        File.WriteAllText(DuckData.saveFile, toSave);
-
-                        string toSend = "";
-
-                        if (DuckData.showChanges[e.Server.Id] == true) toSend = $"Changed from : ```{previousCommand}``` to ```{DuckData.commandDB[e.Server.Id][e.Args[1]].Content}```";
-                        else toSend = "Done";
-
+                        else s.Cmds.Add(cmd, new Command(e.Args[0], e.Args[2], e.User.Name));
+                        SaveSession(s);
+                        string toSend;
+                        if (s.ShowChanges) toSend = "Changed from : ```" + oldContent + "``` to ```" + s.Cmds[e.Args[1]].Content + "```";
+                        else toSend = "Done!";
                         await e.Channel.SendMessage(toSend);
                     }
-                    catch(Exception exception)
+                    catch (Exception exception)
                     {
                         Log(exception.ToString(), true);
                     }
                 });
-            cService.CreateCommand("remove")
-                .Description("Removes a command")
+            svc.CreateCommand("remove")
+                .Description("Removes a function")
                 .Parameter("name", ParameterType.Required)
                 .Do(async e =>
                 {
-                    if (!DuckData.showChanges.ContainsKey(e.Server.Id))
+                    Session s = CreateSession(e.Server.Id);
+                    string cmd = e.Args[0].ToLowerInvariant();
+                    if (s.Cmds.ContainsKey(cmd))
                     {
-                        DuckData.showChanges[e.Server.Id] = false;
-                        string toSave = JsonConvert.SerializeObject(DuckData.showChanges);
-                        File.WriteAllText(DuckData.changelogsFile, toSave);
-                    }
-                    bool check = DuckData.commandDB[e.Server.Id].ContainsKey(e.Args[0]);
-
-                    if (check)
-                    {
-                        string toSave = JsonConvert.SerializeObject(DuckData.commandDB, Formatting.Indented);
-                        File.WriteAllText(DuckData.saveFile, toSave);
-                        string log = DuckData.showChanges[e.Server.Id] ? $" Content : ```{DuckData.commandDB[e.Server.Id][e.Args[0]].Content}```" : "";
-                        DuckData.commandDB[e.Server.Id].Remove(e.Args[0]);
-                        await e.Channel.SendMessage($"Removed command `{e.Args[0]}`." + log);
+                        string log = s.ShowChanges ? "\nContent: ```" + s.Cmds[cmd].Content + "```" : "";
+                        await e.Channel.SendMessage("Removed command `" + cmd + "`" + log);
+                        SaveSession(s);
                     }
                     else await e.Channel.SendMessage("No command to remove!");
-
                 });
-            
-            cService.CreateCommand("info")
-               .Description("Info about a command")
+
+            svc.CreateCommand("info")
+               .Description("Info about a function")
                .Parameter("name", ParameterType.Required)
                .Do(async e =>
                {
-                   foreach (string name in DuckData.commandDB[e.Server.Id].Keys)
+                   Session s = CreateSession(e.Server.Id);
+                   string cmd = e.Args[0].ToLowerInvariant();
+                   if (s.Cmds.ContainsKey(cmd))
                    {
-                       if (name == e.Args[0])
-                       {
-                           string prefix = "";
-                           switch (DuckData.commandDB[e.Server.Id][name].Type)
-                           {
-                               case "lua":
-                                   prefix = "lua";
-                                   break;
-                               case "csharpscript":
-                                   prefix = "cs";
-                                   break;
-                               case "csharp":
-                                   prefix = "cs";
-                                   break;
-                           }
-                           await e.Channel.SendMessage($"Command name : `{name}` {Environment.NewLine} Created : `{DuckData.commandDB[e.Server.Id][name].CreationDate.ToShortDateString()}` by `{DuckData.commandDB[e.Server.Id][name].Creator}` {Environment.NewLine} Type : `{DuckData.commandDB[e.Server.Id][name].Type}` {Environment.NewLine} Content : ```{prefix}{Environment.NewLine}{DuckData.commandDB[e.Server.Id][name].Content}```");
-                       }
+                       Command c = s.Cmds[cmd];
+                       string prefix = "";
+                       if (c.Type == Command.CmdType.Lua) prefix = "lua";
+                       else if (c.Type == Command.CmdType.CSharp) prefix = "cs";
+                       await e.Channel.SendMessage("Command name: `" + cmd + "`\nCreated: `" + c.CreationDate.ToShortDateString() + "` by `" + c.Creator + "`\nType: `" + c.Type + "`\nContent: ```" + prefix + "\n" + c.Content + "```");
                    }
                });
-            cService.CreateCommand("list")
-               .Description("Sends all commands in PM")
+            svc.CreateCommand("list")
+               .Description("Lists all defined functions")
                .Do(async e =>
                {
+                   Session s = CreateSession(e.Server.Id);
                    string toSend = "```";
-
-                   int number = 1;
-                   foreach (string name in DuckData.commandDB[e.Server.Id].Keys)
+                   int i = 0;
+                   foreach (string name in s.Cmds.Keys)
                    {
-                       toSend += number + ". " + name + Environment.NewLine;  
-                       if(toSend.Length > 1900)
+                       toSend += (++i) + ". " + name + "\n";
+                       if (toSend.Length > 1900)
                        {
                            toSend += "```";
                            await e.Channel.SendMessage(toSend);
                            toSend = "```";
                        }
-                       number++;               
                    }
                    toSend += "```";
                    await e.Channel.SendMessage(toSend);
                });
-            cService.CreateCommand("changelog")
+            svc.CreateCommand("changelog")
                .Description("Enables/Disables showing changes to commands")
                .Parameter("action", ParameterType.Required)
                .Do(async e =>
-               {                  
+               {
                    if (e.User.ServerPermissions.Administrator)
                    {
-                       if (e.Args[0].ToLower() == "enable")
+                       Session s = CreateSession(e.Server.Id);
+                       string arg = e.Args[0].ToLowerInvariant();
+                       if (arg == "enable")
                        {
-                           DuckData.showChanges[e.Server.Id] = true;
-                           await e.Channel.SendMessage($"Changelog enabled for server {e.Server.Name}");
+                           s.ShowChanges = true;
+                           await e.Channel.SendMessage("Changelog enabled for server " + e.Server.Name);
                        }
-                       else if (e.Args[0].ToLower() == "disable")
+                       else if (arg == "disable")
                        {
-                           DuckData.showChanges[e.Server.Id] = false;
-                           await e.Channel.SendMessage($"Changelog disabled for server {e.Server.Name}");
+                           s.ShowChanges = false;
+                           await e.Channel.SendMessage("Changelog disabled for server " + e.Server.Name);
                        }
-                       string toSave = JsonConvert.SerializeObject(DuckData.showChanges);
-                       File.WriteAllText(DuckData.changelogsFile, toSave);
+                       SaveSession(s);
                    }
                    else await e.Channel.SendMessage("You don't have sufficent permissons.");
                });
-            cService.CreateCommand("inform")
+            svc.CreateCommand("inform")
                .Description("Remembers a message to send to a specific user when they go online")
                .Parameter("user", ParameterType.Required)
                .Parameter("content", ParameterType.Unparsed)
                .Do(async e =>
                {
-                   if (FindUser(e, e.Args[0]) != null)
+                   User u = FindUser(e, e.Args[0]);
+                   if (u != null)
                    {
-                       if (!DuckData.messagesToDeliver.Keys.Contains(FindUser(e, e.Args[0]).Id))
-                       {
-                           DuckData.messagesToDeliver.Add(FindUser(e, e.Args[0]).Id, new List<string>());
-                       }
-                       DuckData.messagesToDeliver[FindUser(e, e.Args[0]).Id].Add($"From: `{e.User.Name}`\nIn channel: `{e.Server.Name}/{e.Channel.Name}`\nAt: `{DateTime.UtcNow.ToShortDateString()}` UTC\nContent: `{e.Args[1]}`");
-                       await e.Channel.SendMessage($"Okay, I'll deliver the message when {e.Args[0]} goes online");
+                       Session s = CreateSession(e.Server.Id);
+                       string msg = DateTime.UtcNow.ToShortDateString() + " - " + e.Channel.Name + ": " + e.Args[1];
+                       string removed = s.AddMessage(e.User.Id, u.Id, msg);
+                       await e.Channel.SendMessage("Okay, I'll deliver the message when " + u.Nickname + " goes online");
+                       if (!string.IsNullOrWhiteSpace(removed))
+                           await e.Channel.SendMessage("This message was removed from the inbox:\n" + removed);
                    }
-                   else await e.Channel.SendMessage($"No user {e.Args[0]} found on this server!");
+                   else await e.Channel.SendMessage("No user " + e.Args[0] + " found on this server!");
                });
-            /*cService.CreateCommand("execute")
-               .Description("Executes a lua script")
-               .Parameter("script", ParameterType.Unparsed)
-               .Do(async e =>
-               {
-                   await e.Channel.SendMessage(lua.DoString($@"user, userAsMention = ""{e.User.Name}"", ""{e.User.Mention}"" {Environment.NewLine} {e.Args[0]}")[0].ToString());
-               });*/
+            /*
+            cService.CreateCommand("execute")
+                .Description("Executes a lua script")
+                .Parameter("script", ParameterType.Unparsed)
+                .Do(async e =>
+                {
+                    await e.Channel.SendMessage(lua.DoString($@"user, userAsMention = ""{e.User.Name}"", ""{e.User.Mention}"" {Environment.NewLine} {e.Args[0]}")[0].ToString());
+                });
+            */
         }
 
         private void UserUpdated(object sender, UserUpdatedEventArgs e)
         {
-            if((e.Before.Status == UserStatus.Offline || e.Before.Status == UserStatus.Idle) && (e.After.Status == UserStatus.Online || e.After.Status == UserStatus.DoNotDisturb))
+            if ((e.Before.Status == UserStatus.Offline || e.Before.Status == UserStatus.Idle) && (e.After.Status == UserStatus.Online || e.After.Status == UserStatus.DoNotDisturb))
             {
-                if(DuckData.messagesToDeliver.Keys.Contains(e.After.Id))
+                Session s = DuckData.ServerSessions[e.Server.Id];
+                if (s.Msgs.ContainsKey(e.After.Id))
                 {
-                    Discord.Channel toSend = _client.CreatePrivateChannel(e.After.Id).Result;
-                    foreach (string message in DuckData.messagesToDeliver[e.After.Id])
-                    {
-                        toSend.SendMessage(message);
-                    }
-                    DuckData.messagesToDeliver[e.After.Id] = new List<string>();
+                    Inbox i = s.Msgs[e.After.Id];
+                    Channel toSend = dclient.CreatePrivateChannel(e.After.Id).Result;
+                    i.Deliver(toSend);
                 }
             }
         }
 
         private void MessageRecieved(object sender, MessageEventArgs e)
         {
-            if(e.Message.Text.ToCharArray()[0] == '>' && e.User.Id != _client.CurrentUser.Id)// DuckBot ID 265110413421576192
+            // TODO: Make this async
+            if (e.Message.Text.StartsWith(">") && e.User.Id != dclient.CurrentUser.Id) // DuckBot ID 265110413421576192
             {
-                string withoutCommandPrefix = e.Message.Text.Substring(1);
-                string commandname = withoutCommandPrefix.Split( new char[] { ' ' } )[0];
-                string arguments = withoutCommandPrefix.Substring(commandname.Length + 1);
-
-                foreach (string name in DuckData.commandDB[e.Server.Id].Keys)
+                string command = e.Message.Text.Substring(1);
+                int ix = command.IndexOf(' ');
+                string input = command.Substring(ix + 1);
+                command = command.Remove(ix).ToLowerInvariant();
+                Session s = DuckData.ServerSessions[e.Server.Id];
+                if (s.Cmds.ContainsKey(command))
                 {
-                   if(name.ToLower() == commandname.ToLower())
+                    Command c = s.Cmds[command];
+                    try
                     {
-                        try
-                        {
-                            e.Channel.SendIsTyping();
-                            e.Channel.SendMessage(DuckData.commandDB[e.Server.Id][name].Run(e.User.Name, e.User.Mention, arguments, e));
-                        }
-                        catch(Exception exception)
-                        {
-                            e.Channel.SendMessage("Ooops, seems like an exception happened. Did you forget to input something?");
-                            Log(exception.ToString(), true);
-                        }
-                        break;
+                        e.Channel.SendIsTyping();
+                        e.Channel.SendMessage(c.Run(e.User.Name, e.User.Mention, input, e));
+                    }
+                    catch (Exception exception)
+                    {
+                        e.Channel.SendMessage("Ooops, seems like an exception happened. Did you forget to input something?");
+                        Log(exception.ToString(), true);
                     }
                 }
             }
@@ -304,34 +269,28 @@ namespace DuckBot
 
         public static void Log(object sender, LogMessageEventArgs e)
         {
-            File.AppendAllText("/home/hasacz/DuckBotLog.txt", $"[{e.Severity}] [{e.Source}] [{e.Message}]{Environment.NewLine}");
+            using (StreamWriter sw = DuckData.LogFile.AppendText())
+                sw.WriteLine("[" + e.Severity + "] [" + e.Source + "] [" + e.Message + "]");
         }
+
         public static void Log(string text, bool isException)
         {
-            if (isException)
-            {
-                File.AppendAllText("/home/hasacz/DuckBotLog.txt", $"{Environment.NewLine}! EXCEPTION !{Environment.NewLine}{text}{Environment.NewLine}");
-            }
-            else
-            {
-                File.AppendAllText("/home/hasacz/DuckBotLog.txt", text + Environment.NewLine);
-            }
+            using (StreamWriter sw = DuckData.LogFile.AppendText())
+                if (isException)
+                {
+                    sw.WriteLine("[EXCEPTION]");
+                    sw.WriteLine(text);
+                    sw.WriteLine();
+                }
+                else sw.WriteLine(text);
         }
-        public static Discord.User FindUser(CommandEventArgs e, string user)
+
+        public static User FindUser(CommandEventArgs e, string user)
         {
-            Discord.User u = null;
             if (!string.IsNullOrWhiteSpace(user))
-            {
-                if (e.Message.MentionedUsers.Count() == 1)
-                {
-                    u = e.Message.MentionedUsers.FirstOrDefault();
-                }
-                else if (e.Server.FindUsers(user).Any())
-                {
-                    u = e.Server.FindUsers(user).FirstOrDefault();
-                }
-            }
-            return u;
+                foreach (User u in e.Server.FindUsers(user))
+                    return u;
+            return null;
         }
     }
 }

@@ -1,19 +1,16 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DuckBot
 {
     public class DuckData
     {
-        internal static Dictionary<ulong, Dictionary<string, Command>> commandDB = new Dictionary<ulong, Dictionary<string, Command>>();
-        internal static Dictionary<ulong, bool> showChanges = new Dictionary<ulong, bool>();
-        internal static List<ulong> csharpCommandAdders = new List<ulong> { 168285549088604160, 184688687391440904, 137237535700156416, 186295632229695488, 189088171043061760, 197026467446652928 };
-        internal static string saveFile = $"/home/{Environment.UserName}/DuckBotSave.json";
-        internal static string changelogsFile = $"/home/{Environment.UserName}/DuckBotChangelogs.json";
-        internal static Dictionary<ulong, List<string>> messagesToDeliver = new Dictionary<ulong, List<string>>();
+        internal static readonly Dictionary<ulong, Session> ServerSessions = new Dictionary<ulong, Session>();
+        internal static readonly DirectoryInfo SessionsDir = new DirectoryInfo("sessions"); //Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        internal static readonly FileInfo LogFile = new FileInfo("BotErrors.log");
+        internal static readonly List<ulong> CSharpCommandAdders = new List<ulong> { 168285549088604160uL, 184688687391440904uL, 137237535700156416uL, 186295632229695488uL, 189088171043061760uL, 197026467446652928uL };
 
+        internal static readonly ulong SuperUser = 168285549088604160uL;
     }
 }
