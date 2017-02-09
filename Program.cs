@@ -94,12 +94,17 @@ namespace DuckBot
                         {
                             if (DuckData.CSharpCommandAdders.Contains(e.User.Id))
                             {
-                                if (e.User.Id != DuckData.SuperUser && (e.Args[2].Contains("System.IO") || e.Args[2].Contains("Environment.Exit")))
+                                if (e.User.Id != DuckData.SuperUser && (e.Args[2].Contains("Assembly") || e.Args[2].Contains("System.IO") || e.Args[2].Contains("Environment.Exit")))
                                 {
                                     await e.Channel.SendMessage("Someting in this code is not permitted to use in DuckBot");
                                     return;
                                 }
                                 else s.Cmds.Add(cmd, new Command(e.Args[0], e.Args[2], e.User.Name));
+                            }
+                            else
+                            {
+                                await e.Channel.SendMessage("You don't have sufficent permissons.");
+                                return;
                             }
                         }
                         else if (e.Args[0].ToLower() == "whitelist")
