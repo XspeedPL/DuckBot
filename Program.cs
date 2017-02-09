@@ -13,6 +13,7 @@ namespace DuckBot
 
         static void Main(string[] args)
         {
+            File.AppendAllText(DuckData.LogFile.FullName, "[Notice] [" + DateTime.UtcNow.ToShortTimeString() + "] Starting DuckBot...");
             if (!DuckData.SessionsDir.Exists) DuckData.SessionsDir.Create();
             foreach (FileInfo fi in DuckData.SessionsDir.EnumerateFiles("session_*.dat"))
             {
@@ -228,7 +229,7 @@ namespace DuckBot
         {
             if ((e.Before.Status == UserStatus.Offline || e.Before.Status == UserStatus.Idle) && (e.After.Status == UserStatus.Online))
             {
-                Session s = DuckData.ServerSessions[e.Server.Id];
+                Session s = CreateSession(e.Server.Id);
                 if (s.Msgs.ContainsKey(e.After.Id))
                 {
                     Inbox i = s.Msgs[e.After.Id];
@@ -247,7 +248,7 @@ namespace DuckBot
                 int ix = command.IndexOf(' ');
                 string input = command.Substring(ix + 1);
                 command = command.Remove(ix).ToLowerInvariant();
-                Session s = DuckData.ServerSessions[e.Server.Id];
+                Session s = CreateSession(e.Server.Id);
                 if (s.Cmds.ContainsKey(command))
                 {
                     Command c = s.Cmds[command];
