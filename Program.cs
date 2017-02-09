@@ -131,6 +131,7 @@ namespace DuckBot
                     if (s.Cmds.ContainsKey(cmd))
                     {
                         string log = s.ShowChanges ? "\nContent: ```" + s.Cmds[cmd].Content + "```" : "";
+                        s.Cmds.Remove(cmd);
                         await e.Channel.SendMessage("Removed command `" + cmd + "`" + log);
                         SaveSession(s);
                     }
@@ -246,8 +247,14 @@ namespace DuckBot
             {
                 string command = e.Message.Text.Substring(1);
                 int ix = command.IndexOf(' ');
-                string input = command.Substring(ix + 1);
-                command = command.Remove(ix).ToLowerInvariant();
+                string input;
+                if (ix == -1) input = "";
+                else
+                {
+                    input = command.Substring(ix + 1);
+                    command = command.Remove(ix);
+                }
+                command = command.ToLowerInvariant();
                 Session s = CreateSession(e.Server.Id);
                 if (s.Cmds.ContainsKey(command))
                 {
