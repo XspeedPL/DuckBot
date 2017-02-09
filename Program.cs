@@ -226,7 +226,7 @@ namespace DuckBot
 
         private void UserUpdated(object sender, UserUpdatedEventArgs e)
         {
-            if ((e.Before.Status == UserStatus.Offline || e.Before.Status == UserStatus.Idle) && (e.After.Status == UserStatus.Online || e.After.Status == UserStatus.DoNotDisturb))
+            if ((e.Before.Status == UserStatus.Offline || e.Before.Status == UserStatus.Idle) && (e.After.Status == UserStatus.Online))
             {
                 Session s = DuckData.ServerSessions[e.Server.Id];
                 if (s.Msgs.ContainsKey(e.After.Id))
