@@ -21,11 +21,13 @@ namespace DuckBot
                 Session s = new Session(id);
                 using (BinaryReader br = new BinaryReader(fi.OpenRead()))
                     s.Load(br);
+                DuckData.ServerSessions.Add(id, s);
             }
             new Program().Start();
         }
 
         private DiscordClient dclient;
+
         public void Start()
         {
             dclient = new DiscordClient(x =>
@@ -52,20 +54,14 @@ namespace DuckBot
 
         public Session CreateSession(ulong sid)
         {
-            if (!DuckData.ServerSessions.ContainsKey(sid))
-            {
-                Session s = new Session(sid);
-                DuckData.ServerSessions.Add(sid, s);
-                return s;
-            }
-            else return DuckData.ServerSessions[sid];
-        }
-
-        public void SaveSession(Session s)
-        {
-            string file = Path.Combine(DuckData.SessionsDir.FullName, "session_" + s.ServerID + ".dat");
-            using (BinaryWriter bw = new BinaryWriter(new FileStream(file, FileMode.Create, FileAccess.Write)))
-                s.Save(bw);
+            lock (DuckData.ServerSessions)
+                if (!DuckData.ServerSessions.ContainsKey(sid))
+                {
+                    Session s = new Session(sid);
+                    DuckData.ServerSessions.Add(sid, s);
+                    return s;
+                }
+                else return DuckData.ServerSessions[sid];
         }
 
         public void CreateCommands()
@@ -115,15 +111,15 @@ namespace DuckBot
                             return;
                         }
                         else s.Cmds.Add(cmd, new Command(e.Args[0], e.Args[2], e.User.Name));
-                        SaveSession(s);
+                        await s.SaveAsync();
                         string toSend;
                         if (s.ShowChanges) toSend = "Changed from : ```" + oldContent + "``` to ```" + s.Cmds[e.Args[1]].Content + "```";
                         else toSend = "Done!";
                         await e.Channel.SendMessage(toSend);
                     }
-                    catch (Exception exception)
+                    catch (Exception ex)
                     {
-                        Log(exception.ToString(), true);
+                        Log(ex.ToString(), true);
                     }
                 });
             svc.CreateCommand("remove")
@@ -138,7 +134,7 @@ namespace DuckBot
                         string log = s.ShowChanges ? "\nContent: ```" + s.Cmds[cmd].Content + "```" : "";
                         s.Cmds.Remove(cmd);
                         await e.Channel.SendMessage("Removed command `" + cmd + "`" + log);
-                        SaveSession(s);
+                        await s.SaveAsync();
                     }
                     else await e.Channel.SendMessage("No command to remove!");
                 });
@@ -198,7 +194,7 @@ namespace DuckBot
                            s.ShowChanges = false;
                            await e.Channel.SendMessage("Changelog disabled for server " + e.Server.Name);
                        }
-                       SaveSession(s);
+                       await s.SaveAsync();
                    }
                    else await e.Channel.SendMessage("You don't have sufficent permissons.");
                });
@@ -208,7 +204,7 @@ namespace DuckBot
                .Parameter("content", ParameterType.Unparsed)
                .Do(async e =>
                {
-                   User u = FindUser(e, e.Args[0]);
+                   User u = FindUser(e.Server, e.Args[0]);
                    if (u != null)
                    {
                        Session s = CreateSession(e.Server.Id);
@@ -217,21 +213,13 @@ namespace DuckBot
                        await e.Channel.SendMessage("Okay, I'll deliver the message when " + u.Nickname + " goes online");
                        if (!string.IsNullOrWhiteSpace(removed))
                            await e.Channel.SendMessage("This message was removed from the inbox:\n" + removed);
+                       await s.SaveAsync();
                    }
                    else await e.Channel.SendMessage("No user " + e.Args[0] + " found on this server!");
                });
-            /*
-            cService.CreateCommand("execute")
-                .Description("Executes a lua script")
-                .Parameter("script", ParameterType.Unparsed)
-                .Do(async e =>
-                {
-                    await e.Channel.SendMessage(lua.DoString($@"user, userAsMention = ""{e.User.Name}"", ""{e.User.Mention}"" {Environment.NewLine} {e.Args[0]}")[0].ToString());
-                });
-            */
         }
 
-        private void UserUpdated(object sender, UserUpdatedEventArgs e)
+        private async void UserUpdated(object sender, UserUpdatedEventArgs e)
         {
             if ((e.Before.Status == UserStatus.Offline || e.Before.Status == UserStatus.Idle) && (e.After.Status == UserStatus.Online))
             {
@@ -239,26 +227,21 @@ namespace DuckBot
                 if (s.Msgs.ContainsKey(e.After.Id))
                 {
                     Inbox i = s.Msgs[e.After.Id];
-                    Channel toSend = dclient.CreatePrivateChannel(e.After.Id).Result;
+                    Channel toSend = await dclient.CreatePrivateChannel(e.After.Id);
                     i.Deliver(e.Server, toSend);
+                    s.Msgs.Remove(e.After.Id);
+                    await s.SaveAsync();
                 }
             }
         }
 
-        private void MessageRecieved(object sender, MessageEventArgs e)
+        private async void MessageRecieved(object sender, MessageEventArgs e)
         {
-            // TODO: Make this async
-            if (e.Message.Text.StartsWith(">") && e.User.Id != dclient.CurrentUser.Id) // DuckBot ID 265110413421576192
+            if (e.Message.Text.StartsWith(">") && e.User.Id != dclient.CurrentUser.Id)
             {
                 string command = e.Message.Text.Substring(1);
                 int ix = command.IndexOf(' ');
-                string input;
-                if (ix == -1) input = "";
-                else
-                {
-                    input = command.Substring(ix + 1);
-                    command = command.Remove(ix);
-                }
+                if (ix != -1) command = command.Remove(ix);
                 command = command.ToLowerInvariant();
                 Session s = CreateSession(e.Server.Id);
                 if (s.Cmds.ContainsKey(command))
@@ -266,13 +249,14 @@ namespace DuckBot
                     Command c = s.Cmds[command];
                     try
                     {
-                        e.Channel.SendIsTyping();
-                        e.Channel.SendMessage(c.Run(e.User.Name, e.User.Mention, input, e));
+                        await e.Channel.SendIsTyping();
+                        string result = await System.Threading.Tasks.Task.Run(() => c.Run(new CmdParams(e)));
+                        await e.Channel.SendMessage(result);
                     }
-                    catch (Exception exception)
+                    catch (Exception ex)
                     {
-                        e.Channel.SendMessage("Ooops, seems like an exception happened. Did you forget to input something?");
-                        Log(exception.ToString(), true);
+                        await e.Channel.SendMessage("Ooops, seems like an exception happened: " + ex.Message);
+                        Log(ex.ToString(), true);
                     }
                 }
             }
@@ -281,7 +265,7 @@ namespace DuckBot
         public static void Log(object sender, LogMessageEventArgs e)
         {
             using (StreamWriter sw = DuckData.LogFile.AppendText())
-                sw.WriteLine("[" + e.Severity + "] [" + e.Source + "] [" + e.Message + "]");
+                sw.WriteLine("[" + e.Severity + "] [" + e.Source + "] " + e.Message);
         }
 
         public static void Log(string text, bool isException)
@@ -296,10 +280,10 @@ namespace DuckBot
                 else sw.WriteLine(text);
         }
 
-        public static User FindUser(CommandEventArgs e, string user)
+        public static User FindUser(Server srv, string user)
         {
             if (!string.IsNullOrWhiteSpace(user))
-                foreach (User u in e.Server.FindUsers(user))
+                foreach (User u in srv.FindUsers(user))
                     return u;
             return null;
         }

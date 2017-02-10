@@ -13,25 +13,27 @@ namespace DuckBot
     {
         private static readonly Regex cmdMatch = new Regex("%(.+?)(:.+?)*%");
 
-        internal delegate string CmdAct(string[] args, MessageEventArgs e);
+        internal delegate string CmdAct(string[] args, CmdParams msg);
         internal static readonly Dictionary<string, CmdAct> cmdProc = new Dictionary<string, CmdAct>();
 
         static Command()
         {
-            cmdProc.Add("user", (args, e) => { return e.User.Nickname; });
-            cmdProc.Add("userMention", (args, e) => { return e.User.NicknameMention; });
-            cmdProc.Add("input", (args, e) =>
+            cmdProc.Add("user", (args, msg) => { return msg.sender.Name; });
+            cmdProc.Add("input", (args, msg) => { return msg.args; });
+            cmdProc.Add("inputOrUser", (args, msg) =>
             {
-                int ix = e.Message.RawText.IndexOf(' ');
-                return e.Message.RawText.Substring(ix + 1);
+                return string.IsNullOrWhiteSpace(msg.args) ? msg.sender.Name : msg.args;
             });
-            cmdProc.Add("inputOrUser", (args, e) =>
+            cmdProc.Add("mention", (args, msg) =>
             {
-                int ix = e.Message.RawText.IndexOf(' ');
-                string input = e.Message.RawText.Substring(ix + 1);
-                return string.IsNullOrWhiteSpace(input) ? e.User.Nickname : input;
+                if (args.Length > 0)
+                {
+                    User u = Program.FindUser(msg.server, args[0]);
+                    return u == null ? "ERROR" : u.Mention;
+                }
+                else return msg.sender.Mention;
             });
-            cmdProc.Add("rand", (args, e) =>
+            cmdProc.Add("rand", (args, msg) =>
             {
                 try
                 {
@@ -43,6 +45,13 @@ namespace DuckBot
                     else if (args.Length == 1) return Program.Rand.Next(int.Parse(args[0])).ToString();
                 }
                 catch { }
+                return "ERROR";
+            });
+            cmdProc.Add("command", (args, msg) =>
+            {
+                Session s = DuckData.ServerSessions[msg.server.Id];
+                if (s.Cmds.ContainsKey(args[0]))
+                    return s.Cmds[args[0]].Run(new CmdParams(msg, args[1]));
                 return "ERROR";
             });
         }
@@ -61,18 +70,24 @@ namespace DuckBot
 
         public void Load(BinaryReader br)
         {
-            Creator = br.ReadString();
-            CreationDate = DateTime.FromBinary(br.ReadInt64());
-            Type = (CmdType)br.ReadByte();
-            Content = br.ReadString();
+            lock (this)
+            {
+                Creator = br.ReadString();
+                CreationDate = DateTime.FromBinary(br.ReadInt64());
+                Type = (CmdType)br.ReadByte();
+                Content = br.ReadString();
+            }
         }
 
         public void Save(BinaryWriter bw)
         {
-            bw.Write(Creator);
-            bw.Write(CreationDate.Ticks);
-            bw.Write((byte)Type);
-            bw.Write(Content);
+            lock (this)
+            {
+                bw.Write(Creator);
+                bw.Write(CreationDate.Ticks);
+                bw.Write((byte)Type);
+                bw.Write(Content);
+            }
         }
 
         public Command(string type, string content, string creator)
@@ -85,7 +100,7 @@ namespace DuckBot
             Content = content;
         }
         
-        public string CmdEngine(string content, MessageEventArgs e)
+        public string CmdEngine(string content, CmdParams msg)
         {
             return cmdMatch.Replace(content, (match) =>
             {
@@ -93,33 +108,33 @@ namespace DuckBot
                 if (cmdProc.ContainsKey(cmd))
                 {
                     string[] args = match.Groups[2].Success ? match.Groups[2].Value.Substring(1).Split(',') : new string[0];
-                    return cmdProc[cmd](args, e);
+                    return cmdProc[cmd](args, msg);
                 }
                 else return match.Value;
             });
         }
 
-        public string Run(string user, string userAsMention, string input, MessageEventArgs e)
+        public string Run(CmdParams msg)
         {
             try
             {
-                if (Type == CmdType.Text) return CmdEngine(Content, e);
+                if (Type == CmdType.Text) return CmdEngine(Content, msg);
                 else if (Type == CmdType.Switch)
                 {
                     string[] cases = Content.Split('|');
-                    cases[0] = CmdEngine(cases[0].Trim(), e);
+                    cases[0] = CmdEngine(cases[0].Trim(), msg);
                     for (int i = 1; i < cases.Length; ++i)
                     {
                         cases[i] = cases[i].Trim();
                         if (cases[i].StartsWith("default"))
-                            return CmdEngine(cases[i].Substring(cases[i].IndexOf(' ') + 1), e);
+                            return CmdEngine(cases[i].Substring(cases[i].IndexOf(' ') + 1), msg);
                         else if (cases[i].StartsWith("case"))
                         {
                             string match = cases[i].Substring(cases[i].IndexOf('"') + 1);
                             int ix = match.IndexOf('"');
                             string data = match.Substring(ix + 1).Trim();
                             if (cases[0] == match.Remove(ix))
-                                return CmdEngine(data, e);
+                                return CmdEngine(data, msg);
                         }
                     }
                     return "Switch didn't return anything";
@@ -153,7 +168,7 @@ namespace DuckBot
                 }
                 else if (Type == CmdType.CSharp)
                 {
-                    const string template = "using System;using System.Collections.Generic;using Discord.Net;using Discord;using Discord.Commands;namespace DuckCommand {public class Command {public static string Main(string input,MessageEventArgs e){";
+                    const string template = "using System;using System.Collections.Generic;using Discord.Net;using Discord;using Discord.Commands;namespace DuckCommand {public class Command {public static string Main(string rawText,User sender,Server server,Channel channel){";
                     string source = template + Content + "}}}";
                     using (CodeDomProvider compiler = CodeDomProvider.CreateProvider("CSharp"))
                     {
@@ -167,7 +182,7 @@ namespace DuckBot
                         if (!results.Errors.HasErrors)
                         {
                             MethodInfo method = results.CompiledAssembly.GetType("DuckCommand.Command").GetMethod("Main");
-                            return method.Invoke(null, new object[] { input, e }).ToString();
+                            return method.Invoke(null, new object[] { msg.args, msg.sender, msg.server, msg.channel }).ToString();
                         }
                         else
                         {
@@ -182,7 +197,7 @@ namespace DuckBot
             catch (Exception ex)
             {
                 Program.Log(ex.ToString(), true);
-                return "Welp, an exception occured. Ping EchoDuck to see it if you need to.";
+                return "Welp, an exception occured: " + ex.Message + ". Ping EchoDuck to see it if you need to.";
             }
         }
     }
