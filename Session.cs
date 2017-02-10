@@ -24,6 +24,7 @@ namespace DuckBot
         {
             int count = br.ReadInt32();
             lock (this)
+            {
                 while (count-- > 0)
                 {
                     string name = br.ReadString();
@@ -31,8 +32,7 @@ namespace DuckBot
                     cmd.Load(br);
                     Cmds.Add(name, cmd);
                 }
-            count = br.ReadInt32();
-            lock (this)
+                count = br.ReadInt32();
                 while (count-- > 0)
                 {
                     ulong user = br.ReadUInt64();
@@ -40,7 +40,8 @@ namespace DuckBot
                     inb.Load(br);
                     Msgs.Add(user, inb);
                 }
-            ShowChanges = br.ReadBoolean();
+                ShowChanges = br.ReadBoolean();
+            }
         }
 
         public Task SaveAsync()

@@ -19,6 +19,10 @@ namespace DuckBot
         static Command()
         {
             cmdProc.Add("user", (args, msg) => { return msg.sender.Name; });
+            cmdProc.Add("nickOrUser", (args, msg) =>
+            {
+                return string.IsNullOrWhiteSpace(msg.sender.Nickname) ? msg.sender.Name : msg.sender.Nickname;
+            });
             cmdProc.Add("input", (args, msg) => { return msg.args; });
             cmdProc.Add("inputOrUser", (args, msg) =>
             {
@@ -49,10 +53,20 @@ namespace DuckBot
             });
             cmdProc.Add("command", (args, msg) =>
             {
-                Session s = DuckData.ServerSessions[msg.server.Id];
-                if (s.Cmds.ContainsKey(args[0]))
-                    return s.Cmds[args[0]].Run(new CmdParams(msg, args[1]));
-                return "ERROR";
+                Command c = Program.Inst.GetCommand(msg.server, args[0]);
+                return c == null ? "ERROR" : c.Run(new CmdParams(msg, args[1]));
+            });
+            cmdProc.Add("giphy", (args, msg) =>
+            {
+                using (System.Net.WebClient wc = new System.Net.WebClient())
+                {
+                    string data = wc.DownloadString("http://api.giphy.com/v1/gifs/random?api_key=dc6zaTOxFJmzC&tag=" + msg.args.Replace(' ', '+'));
+                    int ix = data.IndexOf("\"image_url\":\"");
+                    data = data.Substring(ix + 13);
+                    ix = data.IndexOf("\",");
+                    data = data.Remove(ix);
+                    return data.Replace("\\/", "/");
+                }
             });
         }
 
