@@ -78,14 +78,18 @@ namespace DuckBot
             });
             FuncVars.Add("substr", (args, msg) =>
             {
-                string s = args[0];
-                int i1 = int.Parse(args[1]);
-                if (args.Length > 2)
+                try
                 {
-                    int i2 = int.Parse(args[2]);
-                    return s.Substring(i1 >= 0 ? i1 : s.Length + i1, i2);
+                    string s = args[0];
+                    int i1 = int.Parse(args[1]);
+                    if (args.Length > 2)
+                    {
+                        int i2 = int.Parse(args[2]);
+                        return s.Substring(i1 >= 0 ? i1 : s.Length + i1, i2);
+                    }
+                    else return s.Substring(i1 >= 0 ? i1 : s.Length + i1);
                 }
-                else return s.Substring(i1 >= 0 ? i1 : s.Length + i1);
+                catch { return "ERROR"; }
             });
         }
 

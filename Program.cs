@@ -28,20 +28,28 @@ namespace DuckBot
         private readonly Dictionary<string, HardCmd> hardCmds;
         private readonly DiscordClient dClient;
         private readonly DuckData data;
+        private readonly string token, prefix;
 
         static void Main(string[] args)
         {
             Console.Title = "DuckBot";
-            using (Inst = new Program())
+            if (!DuckData.TokenFile.Exists) Log(LogSeverity.Error, "Token file hasn't been found!");
+            else
             {
-                Inst.LoadData();
-                Inst.Start();
-                while (Console.ReadKey(true).Key != ConsoleKey.Q)
-                    System.Threading.Thread.Sleep(250);
+                string token = File.ReadAllText(DuckData.TokenFile.FullName);
+                int ix = token.IndexOf(' ');
+                if (ix < 1) Log(LogSeverity.Error, "Token file has wrong format!");
+                else using (Inst = new Program(token.Substring(ix + 1), token.Remove(ix)))
+                {
+                    Inst.LoadData();
+                    Inst.Start();
+                    while (Console.ReadKey(true).Key != ConsoleKey.Q)
+                        System.Threading.Thread.Sleep(100);
+                }
             }
         }
 
-        private Program()
+        private Program(string userToken, string cmdPrefix)
         {
             dClient = new DiscordClient(x =>
             {
@@ -49,6 +57,8 @@ namespace DuckBot
                 x.LogLevel = LogSeverity.Info;
                 x.LogHandler = Log;
             });
+            token = userToken;
+            prefix = cmdPrefix;
             data = new DuckData();
             hardCmds = new Dictionary<string, HardCmd>();
             CreateCommands();
@@ -104,7 +114,7 @@ namespace DuckBot
             Log(LogSeverity.Info, "Starting DuckBot, press 'Q' to quit!");
             dClient.MessageReceived += MessageRecieved;
             dClient.UserUpdated += UserUpdated;
-            dClient.Connect("MjY1MTEwNDEzNDIxNTc2MTky.C0qW1g.EkGzwhfFyVKI6qtBQOjFMGP0zNA", TokenType.Bot);
+            dClient.Connect(token, TokenType.Bot);
         }
 
         internal Session CreateSession(Server srv)
@@ -277,7 +287,7 @@ namespace DuckBot
 
         private void MessageRecieved(object sender, MessageEventArgs e)
         {
-            if (e.Message.RawText.StartsWith(">") && e.User.Id != dClient.CurrentUser.Id)
+            if (e.Message.RawText.StartsWith(prefix) && e.User.Id != dClient.CurrentUser.Id)
                 System.Threading.Tasks.Task.Run(async () =>
                 {
                     string command = e.Message.RawText.Substring(1);
