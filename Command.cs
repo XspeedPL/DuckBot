@@ -167,21 +167,19 @@ namespace DuckBot
             {
                 using (Lua lua = new Lua())
                 {
+                    LuaPrintProxy proxy = new LuaPrintProxy();
+                    lua.RegisterFunction("print", proxy, proxy.GetType().GetMethod("Print", new Type[] { typeof(object[]) }));
                     string code;
                     using (StreamReader sr = new StreamReader(GetType().Assembly.GetManifestResourceStream("DuckBot.Resources.Sandbox.lua")))
                         code = sr.ReadToEnd();
                     try
                     {
+                        const string template = "args = {...};rawText,sender,server,channel=args[1],args[2],args[3],args[4]\n";
+                        string source = template + Content;
                         using (LuaFunction func = (LuaFunction)lua.DoString(code, "sandbox")[0])
                         {
-                            object[] res = func.Call(Content, msg.args, msg.sender, msg.server, msg.channel);
-                            if (res.Length > 1)
-                            {
-                                string ret = "";
-                                for (int i = 1; i < res.Length; ++i) ret += ", " + res[i];
-                                return ret.Substring(2);
-                            }
-                            else return "Script didn't return anything";
+                            object[] res = func.Call(source, msg.args, msg.sender, msg.server, msg.channel);
+                            return proxy.Length == 0 ? "Script didn't return anything" : proxy.Contents;
                         }
                     }
                     catch (NLua.Exceptions.LuaScriptException ex) { return "An error has occured: " + ex.Message + "\n``` " + ex.Source + " ```"; }
@@ -214,6 +212,25 @@ namespace DuckBot
                 }
             }
             else throw new ArgumentOutOfRangeException("Type");
+        }
+
+        private class LuaPrintProxy
+        {
+            private StringBuilder buffer = new StringBuilder();
+
+            public void Print(params object[] args)
+            {
+                if (args.Length > 0)
+                {
+                    buffer.Append(args[0].ToString());
+                    for (int i = 1; i < args.Length; ++i) buffer.Append("    " + args[i].ToString());
+                }
+                buffer.AppendLine();
+            }
+
+            public int Length { get { return buffer.Length; } }
+
+            public string Contents { get { return buffer.ToString().TrimEnd('\n', '\r'); } }
         }
     }
 }

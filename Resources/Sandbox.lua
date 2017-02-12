@@ -1,8 +1,5 @@
-﻿-- save a pointer to globals that would be unreachable in sandbox
-local e = _ENV
-
--- sample sandbox environment
-sandbox_env = {
+﻿sandbox_env = {
+  print = print,
   ipairs = ipairs,
   next = next,
   pairs = pairs,
@@ -30,13 +27,10 @@ sandbox_env = {
 }
 
 function run_sandbox(sb_func, ...)
-	if (type(sb_func) == "string") then sb_func = load(sb_func) end
-    local sb_orig_env = _ENV
+	sb_func = load(sb_func, "script", "t", sandbox_env)
     if (not sb_func) then return nil end
-    _ENV = sandbox_env
-    local sb_ret = { e.pcall(sb_func, ...) }
-    _ENV = sb_orig_env
-    return e.table.unpack(sb_ret)
+    local sb_ret = { pcall(sb_func, ...) }
+    return table.unpack(sb_ret)
 end
 
 return run_sandbox
