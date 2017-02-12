@@ -5,7 +5,7 @@ using System.IO;
 
 namespace DuckBot
 {
-    internal sealed class Program
+    internal sealed class Program : IDisposable
     {
         public static readonly Random Rand = new Random();
         internal static Program Inst = null;
@@ -23,15 +23,20 @@ namespace DuckBot
             }
         }
 
-        private readonly Dictionary<string, HardCmd> hardCmds = new Dictionary<string, HardCmd>();
+        private readonly Dictionary<string, HardCmd> hardCmds;
         private readonly DiscordClient dClient;
         private readonly DuckData data;
 
         static void Main(string[] args)
         {
-            Inst = new Program();
-            Inst.LoadData();
-            Inst.Start();
+            Console.Title = "DuckBot";
+            using (Inst = new Program())
+            {
+                Inst.LoadData();
+                Inst.Start();
+                while (Console.ReadKey(true).Key != ConsoleKey.Q)
+                    System.Threading.Thread.Sleep(250);
+            }
         }
 
         private Program()
@@ -43,10 +48,16 @@ namespace DuckBot
                 x.LogHandler = Log;
             });
             data = new DuckData();
+            hardCmds = new Dictionary<string, HardCmd>();
             CreateCommands();
         }
 
-        ~Program() { dClient.Dispose(); }
+        public void Dispose()
+        {
+            Log(LogSeverity.Info, "Shutting down DuckBot...");
+            dClient.Disconnect().Wait();
+            dClient.Dispose();
+        }
 
         private void SaveWhitelist()
         {
@@ -56,7 +67,7 @@ namespace DuckBot
                     foreach (ulong u in data.AdvancedUsers)
                         sw.WriteLine(u.ToString());
             }
-            catch (Exception ex) { Log(ex.ToString(), true); }
+            catch (Exception ex) { Log(ex); }
         }
 
         private void LoadData()
@@ -72,7 +83,7 @@ namespace DuckBot
                             data.AdvancedUsers.Add(ulong.Parse(line));
                     }
                 }
-                catch (Exception ex) { Log(new Exception("Couldn't load whitelist file", ex).ToString(), true); }
+                catch (Exception ex) { Log(new Exception("Couldn't load whitelist file", ex)); }
             foreach (FileInfo fi in DuckData.SessionsDir.EnumerateFiles("session_*.dat"))
                 try
                 {
@@ -82,18 +93,16 @@ namespace DuckBot
                         s.Load(br);
                     data.ServerSessions.Add(id, s);
                 }
-                catch (Exception ex) { Log(new Exception("Couldn't load " + fi.Name, ex).ToString(), true); }
+                catch (Exception ex) { Log(new Exception("Couldn't load " + fi.Name, ex)); }
         }
 
         private void Start()
         {
-            File.AppendAllText(DuckData.LogFile.FullName, "[" + LogSeverity.Info + "] [" + DateTime.UtcNow.ToShortTimeString() + "] Starting DuckBot, hold on tight!");
+            if (!DuckData.LogFile.Exists) File.WriteAllText(DuckData.LogFile.FullName, "");
+            Log(LogSeverity.Info, "Starting DuckBot, press 'Q' to quit!");
             dClient.MessageReceived += MessageRecieved;
             dClient.UserUpdated += UserUpdated;
-            dClient.ExecuteAndWait(async () =>
-            {
-                await dClient.Connect("MjY1MTEwNDEzNDIxNTc2MTky.C0qW1g.EkGzwhfFyVKI6qtBQOjFMGP0zNA", TokenType.Bot);
-            });
+            dClient.Connect("MjY1MTEwNDEzNDIxNTc2MTky.C0qW1g.EkGzwhfFyVKI6qtBQOjFMGP0zNA", TokenType.Bot);
         }
 
         internal Session CreateSession(Server srv)
@@ -196,10 +205,10 @@ namespace DuckBot
                     {
                         toSend += "```";
                         await msg.channel.SendMessage(toSend);
-                        toSend = "```";
+                        toSend = " ```";
                     }
                 }
-                toSend += "```";
+                toSend += " ```";
                 await msg.channel.SendMessage(toSend);
             }));
 
@@ -261,7 +270,7 @@ namespace DuckBot
 
         private void MessageRecieved(object sender, MessageEventArgs e)
         {
-            if (e.Message.RawText.StartsWith(">") && e.User.Id != dClient.CurrentUser.Id)
+            if (e.Message.RawText.StartsWith("»") && e.User.Id != dClient.CurrentUser.Id)
                 System.Threading.Tasks.Task.Run(async () =>
                 {
                     string command = e.Message.RawText.Substring(1);
@@ -273,10 +282,14 @@ namespace DuckBot
                     {
                         if (hardCmds.ContainsKey(command))
                         {
-                            await e.Channel.SendIsTyping();
                             HardCmd hcmd = hardCmds[command];
                             string[] args = e.Message.RawText.Substring(ix + 2).Split(new char[] { ' ' }, hcmd.argsMax, StringSplitOptions.RemoveEmptyEntries);
-                            if (args.Length >= hcmd.argsMin) hcmd.func(args, new CmdParams(e), s);
+                            if (args.Length >= hcmd.argsMin)
+                            {
+                                await e.Channel.SendIsTyping();
+                                hcmd.func(args, new CmdParams(e), s);
+                            }
+                            else await e.Channel.SendMessage("Insufficient amount of parameters specified.");
                         }
                         else if (s.Cmds.ContainsKey(command))
                         {
@@ -287,7 +300,7 @@ namespace DuckBot
                     }
                     catch (Exception ex)
                     {
-                        Log(ex.ToString(), true);
+                        Log(ex);
                         await e.Channel.SendMessage("Ooops, seems like an exception happened: " + ex.Message);
                     }
                 });
@@ -295,19 +308,20 @@ namespace DuckBot
 
         public static void Log(object sender, LogMessageEventArgs e)
         {
-            using (StreamWriter sw = DuckData.LogFile.AppendText())
-                sw.WriteLine("[" + e.Severity + "] [" + DateTime.UtcNow.ToShortTimeString() + "] [" + e.Source + "] " + e.Message);
+            Log(e.Severity, "[" + e.Source + "] " + e.Message);
         }
 
-        public static void Log(string text, bool isException)
+        public static void Log(Exception ex)
         {
+            Log(LogSeverity.Error, ex + "\n");
+        }
+
+        public static void Log(LogSeverity severity, string text)
+        {
+            text = "[" + severity + "] [" + DateTime.UtcNow.ToShortTimeString() + "] " + text;
             using (StreamWriter sw = DuckData.LogFile.AppendText())
-                if (isException)
-                {
-                    sw.WriteLine("[" + LogSeverity.Error + "] [" + DateTime.UtcNow.ToShortTimeString() + "] " + text);
-                    sw.WriteLine();
-                }
-                else sw.WriteLine(text);
+                sw.WriteLine(text);
+            Console.WriteLine(text);
         }
 
         public static User FindUser(Server srv, string user)

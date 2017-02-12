@@ -168,14 +168,20 @@ namespace DuckBot
                 using (Lua lua = new Lua())
                 {
                     string code;
-                    using (StreamReader sr = new StreamReader(GetType().Assembly.GetManifestResourceStream("Resources.Sandbox.lua")))
+                    using (StreamReader sr = new StreamReader(GetType().Assembly.GetManifestResourceStream("DuckBot.Resources.Sandbox.lua")))
                         code = sr.ReadToEnd();
                     try
                     {
                         using (LuaFunction func = (LuaFunction)lua.DoString(code, "sandbox")[0])
                         {
-                            object[] res = func.Call(Content, "{}", msg.args, msg.sender, msg.server, msg.channel);
-                            return res.Length > 0 ? res[0].ToString() : "Script didn't return anything";
+                            object[] res = func.Call(Content, msg.args, msg.sender, msg.server, msg.channel);
+                            if (res.Length > 1)
+                            {
+                                string ret = "";
+                                for (int i = 1; i < res.Length; ++i) ret += ", " + res[i];
+                                return ret.Substring(2);
+                            }
+                            else return "Script didn't return anything";
                         }
                     }
                     catch (NLua.Exceptions.LuaScriptException ex) { return "An error has occured: " + ex.Message + "\n``` " + ex.Source + " ```"; }
