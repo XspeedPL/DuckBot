@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Text;
 using System.Collections.Generic;
 using Discord;
-using Discord.Commands;
 using System.IO;
 
 namespace DuckBot
@@ -11,6 +9,21 @@ namespace DuckBot
     {
         public static readonly Random Rand = new Random();
         internal static Program Inst = null;
+        
+        public struct HardCmd
+        {
+            public delegate void CmdAct(string[] args, CmdParams msg, Session s);
+
+            public readonly CmdAct func;
+            public byte argsMin, argsMax;
+
+            public HardCmd(byte minArgs, byte maxArgs, CmdAct action)
+            {
+                argsMin = minArgs; argsMax = maxArgs; func = action;
+            }
+        }
+
+        private readonly Dictionary<string, HardCmd> hardCmds = new Dictionary<string, HardCmd>();
         private readonly DiscordClient dClient;
         private readonly DuckData data;
 
@@ -28,13 +41,6 @@ namespace DuckBot
                 x.AppName = "DuckBot";
                 x.LogLevel = LogSeverity.Info;
                 x.LogHandler = Log;
-
-            });
-            dClient.UsingCommands(x =>
-            {
-                x.PrefixChar = '>';
-                x.AllowMentionPrefix = true;
-                x.HelpMode = HelpMode.Public;
             });
             data = new DuckData();
             CreateCommands();
@@ -110,161 +116,136 @@ namespace DuckBot
 
         private void CreateCommands()
         {
-            CommandService svc = dClient.GetService<CommandService>();
-
-            svc.CreateCommand("add")
-                .Description("Adds a function definition")
-                .Parameter("type", ParameterType.Required)
-                .Parameter("name", ParameterType.Required)
-                .Parameter("content", ParameterType.Unparsed)
-                .Do(async e =>
+            hardCmds.Add("add", new HardCmd(3, 3, async (args, msg, s) =>
+            {
+                if (args[0].ToLower() == "csharp")
                 {
-                    Session s = CreateSession(e.Server);
-                    string cmd = e.Args[1].ToLowerInvariant();
-
-                    string oldContent = " ";
-                    if (e.Args[0].ToLower() == "csharp")
+                    if (data.AdvancedUsers.Contains(msg.sender.Id))
                     {
-                        if (data.AdvancedUsers.Contains(e.User.Id))
+                        if (msg.sender.Id != DuckData.SuperUserId && (args[2].Contains("Assembly") || args[2].Contains("System.IO") || args[2].Contains("Environment")))
                         {
-                            if (e.User.Id != DuckData.SuperUserId && (e.Args[2].Contains("Assembly") || e.Args[2].Contains("System.IO") || e.Args[2].Contains("Environment")))
-                            {
-                                await e.Channel.SendMessage("Unpermitted keywords have been found in the code.");
-                                return;
-                            }
-                            else s.Cmds.Add(cmd, new Command(e.Args[0], e.Args[2], e.User.Name));
-                        }
-                        else
-                        {
-                            await e.Channel.SendMessage("You don't have sufficent permissons.");
+                            await msg.channel.SendMessage("Unpermitted keywords have been found in the code.");
                             return;
                         }
                     }
-                    else if (e.Args[0].ToLower() == "whitelist")
+                    else
                     {
-                        if (e.User.Id == DuckData.SuperUserId)
-                        {
-                            data.AdvancedUsers.Add(ulong.Parse(e.Args[1]));
-                            SaveWhitelist();
-                            await e.Channel.SendMessage("The ID has been added to whitelist!");
-                        }
-                        else await e.Channel.SendMessage("You don't have sufficent permissons.");
+                        await msg.channel.SendMessage("You don't have sufficent permissons.");
                         return;
                     }
-                    else if (s.Cmds.ContainsKey(cmd))
-                    {
-                        oldContent = s.Cmds[cmd].Content;
-                        s.Cmds[cmd] = new Command(e.Args[0], e.Args[2], e.User.Name);
-                    }
-                    else s.Cmds.Add(cmd, new Command(e.Args[0], e.Args[2], e.User.Name));
-                    await s.SaveAsync();
-                    string toSend;
-                    if (s.ShowChanges) toSend = "Changed from : ```" + oldContent + "``` to ```" + s.Cmds[e.Args[1]].Content + "```";
-                    else toSend = "Done!";
-                    await e.Channel.SendMessage(toSend);
-                });
-            svc.CreateCommand("remove")
-                .Description("Removes a function")
-                .Parameter("name", ParameterType.Required)
-                .Do(async e =>
+                }
+                else if (args[0].ToLower() == "whitelist")
                 {
-                    Session s = CreateSession(e.Server);
-                    string cmd = e.Args[0].ToLowerInvariant();
-                    if (s.Cmds.ContainsKey(cmd))
+                    if (msg.sender.Id == DuckData.SuperUserId)
                     {
-                        string log = s.ShowChanges ? "\nContent: ```" + s.Cmds[cmd].Content + "```" : "";
-                        s.Cmds.Remove(cmd);
-                        await e.Channel.SendMessage("Removed command `" + cmd + "`" + log);
-                        await s.SaveAsync();
+                        data.AdvancedUsers.Add(ulong.Parse(args[1]));
+                        SaveWhitelist();
+                        await msg.channel.SendMessage("The ID has been added to whitelist!");
                     }
-                    else await e.Channel.SendMessage("No command to remove!");
-                });
+                    else await msg.channel.SendMessage("You don't have sufficent permissons.");
+                    return;
+                }
+                string cmd = args[1].ToLowerInvariant(), oldContent = " ";
+                if (s.Cmds.ContainsKey(cmd))
+                {
+                    oldContent = s.Cmds[cmd].Content;
+                    s.Cmds[cmd] = new Command(args[0], args[2], msg.sender.Name);
+                }
+                else s.Cmds.Add(cmd, new Command(args[0], args[2],msg.sender.Name));
+                await s.SaveAsync();
+                string toSend;
+                if (s.ShowChanges) toSend = "Changed from : ```" + oldContent + "``` to ```" + s.Cmds[args[1]].Content + "```";
+                else toSend = "Done!";
+                await msg.channel.SendMessage(toSend);
+            }));
 
-            svc.CreateCommand("info")
-               .Description("Info about a function")
-               .Parameter("name", ParameterType.Required)
-               .Do(async e =>
-               {
-                   Session s = CreateSession(e.Server);
-                   string cmd = e.Args[0].ToLowerInvariant();
-                   if (s.Cmds.ContainsKey(cmd))
-                   {
-                       Command c = s.Cmds[cmd];
-                       string prefix = "";
-                       if (c.Type == Command.CmdType.Lua) prefix = "lua";
-                       else if (c.Type == Command.CmdType.CSharp) prefix = "cs";
-                       await e.Channel.SendMessage("Command name: `" + cmd + "`\nCreated: `" + c.CreationDate.ToShortDateString() + "` by `" + c.Creator + "`\nType: `" + c.Type + "`\nContent: ```" + prefix + "\n" + c.Content + "```");
-                   }
-               });
-            svc.CreateCommand("list")
-               .Description("Lists all defined functions")
-               .Do(async e =>
-               {
-                   Session s = CreateSession(e.Server);
-                   string toSend = "```";
-                   int i = 0;
-                   foreach (string name in s.Cmds.Keys)
-                   {
-                       toSend += (++i) + ". " + name + "\n";
-                       if (toSend.Length > 1900)
-                       {
-                           toSend += "```";
-                           await e.Channel.SendMessage(toSend);
-                           toSend = "```";
-                       }
-                   }
-                   toSend += "```";
-                   await e.Channel.SendMessage(toSend);
-               });
-            svc.CreateCommand("changelog")
-               .Description("Enables/Disables showing changes to commands")
-               .Parameter("action", ParameterType.Required)
-               .Do(async e =>
-               {
-                   if (e.User.ServerPermissions.Administrator)
-                   {
-                       Session s = CreateSession(e.Server);
-                       string arg = e.Args[0].ToLowerInvariant();
-                       if (arg == "enable")
-                       {
-                           s.ShowChanges = true;
-                           await e.Channel.SendMessage("Changelog enabled for server " + e.Server.Name);
-                       }
-                       else if (arg == "disable")
-                       {
-                           s.ShowChanges = false;
-                           await e.Channel.SendMessage("Changelog disabled for server " + e.Server.Name);
-                       }
-                       await s.SaveAsync();
-                   }
-                   else await e.Channel.SendMessage("You don't have sufficent permissons.");
-               });
-            svc.CreateCommand("inform")
-               .Description("Messages a specified user when they appear back online")
-               .Parameter("user", ParameterType.Required)
-               .Parameter("content", ParameterType.Unparsed)
-               .Do(async e =>
-               {
-                   User u = FindUser(e.Server, e.Args[0]);
-                   if (u != null)
-                   {
-                       Session s = CreateSession(e.Server);
-                       string msg = e.Args[1];
-                       if (!msg.StartsWith("`")) msg = "`" + msg + "`";
-                       msg = "`[" + DateTime.UtcNow.ToShortDateString() + "] #" + e.Channel.Name + ":` " + msg;
-                       string removed = s.AddMessage(e.User.Id, u.Id, msg);
-                       await e.Channel.SendMessage("Okay, I'll deliver the message when " + u.Name + " goes online");
-                       if (!string.IsNullOrWhiteSpace(removed))
-                           await e.Channel.SendMessage("This message was removed from the inbox:\n" + removed);
-                       await s.SaveAsync();
-                   }
-                   else await e.Channel.SendMessage("No user " + e.Args[0] + " found on this server!");
-               });
+            hardCmds.Add("remove", new HardCmd(1, 2, async (args, msg, s) =>
+            {
+                string cmd = args[0].ToLowerInvariant();
+                if (s.Cmds.ContainsKey(cmd))
+                {
+                    string log = s.ShowChanges ? "\nContent: ```" + s.Cmds[cmd].Content + "```" : "";
+                    s.Cmds.Remove(cmd);
+                    await msg.channel.SendMessage("Removed command `" + cmd + "`" + log);
+                    await s.SaveAsync();
+                }
+                else await msg.channel.SendMessage("No command to remove!");
+            }));
+
+            hardCmds.Add("info", new HardCmd(1, 2, async (args, msg, s) =>
+            {
+                string cmd = args[0].ToLowerInvariant();
+                if (s.Cmds.ContainsKey(cmd))
+                {
+                    Command c = s.Cmds[cmd];
+                    string prefix = "";
+                    if (c.Type == Command.CmdType.Lua) prefix = "lua";
+                    else if (c.Type == Command.CmdType.CSharp) prefix = "cs";
+                    await msg.channel.SendMessage("Command name: `" + cmd + "`\nCreated: `" + c.CreationDate.ToShortDateString() + "` by `" + c.Creator + "`\nType: `" + c.Type + "`\nContent: ```" + prefix + "\n" + c.Content + "```");
+                }
+            }));
+
+            hardCmds.Add("list", new HardCmd(0, 0, async (args, msg, s) =>
+            {
+                string toSend = "```";
+                int i = 0;
+                foreach (string name in s.Cmds.Keys)
+                {
+                    toSend += (++i) + ". " + name + "\n";
+                    if (toSend.Length > 1900)
+                    {
+                        toSend += "```";
+                        await msg.channel.SendMessage(toSend);
+                        toSend = "```";
+                    }
+                }
+                toSend += "```";
+                await msg.channel.SendMessage(toSend);
+            }));
+
+            hardCmds.Add("changelog", new HardCmd(1, 1, async (args, msg, s) =>
+            {
+                if (msg.sender.ServerPermissions.Administrator)
+                {
+                    string arg = args[0].ToLowerInvariant();
+                    if (arg == "enable")
+                    {
+                        s.ShowChanges = true;
+                        await msg.channel.SendMessage("Changelog enabled for server " + msg.server.Name);
+                    }
+                    else if (arg == "disable")
+                    {
+                        s.ShowChanges = false;
+                        await msg.channel.SendMessage("Changelog disabled for server " + msg.server.Name);
+                    }
+                    await s.SaveAsync();
+                }
+                else await msg.channel.SendMessage("You don't have sufficent permissons.");
+            }));
+
+            hardCmds.Add("inform", new HardCmd(2, 2, async (args, msg, s) =>
+            {
+                User u = FindUser(msg.server, args[0]);
+                if (u != null)
+                {
+                    string message = args[1];
+                    if (!message.StartsWith("`")) message = "`" + message + "`";
+                    message = "`[" + DateTime.UtcNow.ToShortDateString() + "] " + msg.channel.Mention + ":` " + message;
+                    string removed = s.AddMessage(msg.sender.Id, u.Id, message);
+                    await msg.channel.SendMessage("Okay, I'll deliver the message when " + u.Name + " goes online");
+                    if (!string.IsNullOrWhiteSpace(removed))
+                        await msg.channel.SendMessage("This message was removed from the inbox:\n" + removed);
+                    await s.SaveAsync();
+                }
+                else await msg.channel.SendMessage("No user " + args[0] + " found on this server!");
+            }));
         }
+
+        private static bool UserActive(User u) { return u.Status == UserStatus.Online || u.Status == UserStatus.DoNotDisturb; }
 
         private async void UserUpdated(object sender, UserUpdatedEventArgs e)
         {
-            if ((e.Before.Status == UserStatus.Offline || e.Before.Status == UserStatus.Idle) && (e.After.Status == UserStatus.Online))
+            if (!UserActive(e.Before) && UserActive(e.After))
             {
                 Session s = CreateSession(e.Server);
                 if (s.Msgs.ContainsKey(e.After.Id))
@@ -272,37 +253,44 @@ namespace DuckBot
                     Inbox i = s.Msgs[e.After.Id];
                     Channel toSend = await dClient.CreatePrivateChannel(e.After.Id);
                     i.Deliver(e.Server, toSend);
-                    s.Msgs.Remove(e.After.Id);
+                    lock (s.Msgs) s.Msgs.Remove(e.After.Id);
                     await s.SaveAsync();
                 }
             }
         }
 
-        private async void MessageRecieved(object sender, MessageEventArgs e)
+        private void MessageRecieved(object sender, MessageEventArgs e)
         {
-            if (e.Message.Text.StartsWith(">") && e.User.Id != dClient.CurrentUser.Id)
-            {
-                string command = e.Message.Text.Substring(1);
-                int ix = command.IndexOf(' ');
-                if (ix != -1) command = command.Remove(ix);
-                command = command.ToLowerInvariant();
-                Session s = CreateSession(e.Server);
-                if (s.Cmds.ContainsKey(command))
+            if (e.Message.RawText.StartsWith(">") && e.User.Id != dClient.CurrentUser.Id)
+                System.Threading.Tasks.Task.Run(async () =>
                 {
-                    Command c = s.Cmds[command];
+                    string command = e.Message.RawText.Substring(1);
+                    int ix = command.IndexOf(' ');
+                    if (ix != -1) command = command.Remove(ix);
+                    command = command.ToLowerInvariant();
+                    Session s = CreateSession(e.Server);
                     try
                     {
-                        await e.Channel.SendIsTyping();
-                        string result = await System.Threading.Tasks.Task.Run(() => c.Run(new CmdParams(e)));
-                        await e.Channel.SendMessage(result);
+                        if (hardCmds.ContainsKey(command))
+                        {
+                            await e.Channel.SendIsTyping();
+                            HardCmd hcmd = hardCmds[command];
+                            string[] args = e.Message.RawText.Substring(ix + 2).Split(new char[] { ' ' }, hcmd.argsMax, StringSplitOptions.RemoveEmptyEntries);
+                            if (args.Length >= hcmd.argsMin) hcmd.func(args, new CmdParams(e), s);
+                        }
+                        else if (s.Cmds.ContainsKey(command))
+                        {
+                            await e.Channel.SendIsTyping();
+                            string result = s.Cmds[command].Run(new CmdParams(e));
+                            await e.Channel.SendMessage(result);
+                        }
                     }
                     catch (Exception ex)
                     {
-                        await e.Channel.SendMessage("Ooops, seems like an exception happened: " + ex.Message);
                         Log(ex.ToString(), true);
+                        await e.Channel.SendMessage("Ooops, seems like an exception happened: " + ex.Message);
                     }
-                }
-            }
+                });
         }
 
         public static void Log(object sender, LogMessageEventArgs e)
@@ -316,8 +304,7 @@ namespace DuckBot
             using (StreamWriter sw = DuckData.LogFile.AppendText())
                 if (isException)
                 {
-                    sw.Write("[" + LogSeverity.Error + "] [" + DateTime.UtcNow.ToShortTimeString() + "] ");
-                    sw.WriteLine(text);
+                    sw.WriteLine("[" + LogSeverity.Error + "] [" + DateTime.UtcNow.ToShortTimeString() + "] " + text);
                     sw.WriteLine();
                 }
                 else sw.WriteLine(text);
@@ -326,8 +313,7 @@ namespace DuckBot
         public static User FindUser(Server srv, string user)
         {
             if (!string.IsNullOrWhiteSpace(user))
-                foreach (User u in srv.FindUsers(user))
-                    return u;
+                foreach (User u in srv.FindUsers(user)) return u;
             return null;
         }
     }
