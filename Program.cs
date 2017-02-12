@@ -15,11 +15,13 @@ namespace DuckBot
             public delegate void CmdAct(string[] args, CmdParams msg, Session s);
 
             public readonly CmdAct func;
-            public byte argsMin, argsMax;
+            public readonly byte argsMin, argsMax;
+            public readonly bool admin;
+            public readonly string help;
 
-            public HardCmd(byte minArgs, byte maxArgs, CmdAct action)
+            public HardCmd(byte minArgs, byte maxArgs, CmdAct action, string helpText, bool reqAdmin = false)
             {
-                argsMin = minArgs; argsMax = maxArgs; func = action;
+                argsMin = minArgs; argsMax = maxArgs; func = action; help = helpText; admin = reqAdmin;
             }
         }
 
@@ -157,29 +159,29 @@ namespace DuckBot
                 string cmd = args[1].ToLowerInvariant(), oldContent = " ";
                 if (s.Cmds.ContainsKey(cmd))
                 {
-                    oldContent = s.Cmds[cmd].Content;
+                    oldContent = s.Cmds[cmd].AsCodeBlock();
                     s.Cmds[cmd] = new Command(args[0], args[2], msg.sender.Name);
                 }
                 else s.Cmds.Add(cmd, new Command(args[0], args[2],msg.sender.Name));
                 await s.SaveAsync();
                 string toSend;
-                if (s.ShowChanges) toSend = "Changed from : ```" + oldContent + "``` to ```" + s.Cmds[args[1]].Content + "```";
+                if (s.ShowChanges) toSend = "Changed from: " + oldContent + "\nTo: " + s.Cmds[args[1]].AsCodeBlock();
                 else toSend = "Done!";
                 await msg.channel.SendMessage(toSend);
-            }));
+            }, "<type> <name> <content>`\nTypes: `csharp, lua, switch, text", true));
 
             hardCmds.Add("remove", new HardCmd(1, 2, async (args, msg, s) =>
             {
                 string cmd = args[0].ToLowerInvariant();
                 if (s.Cmds.ContainsKey(cmd))
                 {
-                    string log = s.ShowChanges ? "\nContent: ```" + s.Cmds[cmd].Content + "```" : "";
+                    string log = s.ShowChanges ? "\nContent: " + s.Cmds[cmd].AsCodeBlock() : "";
                     s.Cmds.Remove(cmd);
                     await msg.channel.SendMessage("Removed command `" + cmd + "`" + log);
                     await s.SaveAsync();
                 }
-                else await msg.channel.SendMessage("No command to remove!");
-            }));
+                else await msg.channel.SendMessage("No user-made command with specified name exists.");
+            }, "<command>", true));
 
             hardCmds.Add("info", new HardCmd(1, 2, async (args, msg, s) =>
             {
@@ -187,50 +189,26 @@ namespace DuckBot
                 if (s.Cmds.ContainsKey(cmd))
                 {
                     Command c = s.Cmds[cmd];
-                    string prefix = "";
-                    if (c.Type == Command.CmdType.Lua) prefix = "lua";
-                    else if (c.Type == Command.CmdType.CSharp) prefix = "cs";
-                    await msg.channel.SendMessage("Command name: `" + cmd + "`\nCreated: `" + c.CreationDate.ToShortDateString() + "` by `" + c.Creator + "`\nType: `" + c.Type + "`\nContent: ```" + prefix + "\n" + c.Content + "```");
+                    await msg.channel.SendMessage("Command name: `" + cmd + "`\nCreated: `" + c.CreationDate.ToShortDateString() + "` by `" + c.Creator + "`\nType: `" + c.Type + "`\nContent: " + c.AsCodeBlock());
                 }
-            }));
-
-            hardCmds.Add("list", new HardCmd(0, 0, async (args, msg, s) =>
-            {
-                string toSend = "```";
-                int i = 0;
-                foreach (string name in s.Cmds.Keys)
-                {
-                    toSend += (++i) + ". " + name + "\n";
-                    if (toSend.Length > 1900)
-                    {
-                        toSend += "```";
-                        await msg.channel.SendMessage(toSend);
-                        toSend = " ```";
-                    }
-                }
-                toSend += " ```";
-                await msg.channel.SendMessage(toSend);
-            }));
+                else await msg.channel.SendMessage("No user-made command with specified name exists.");
+            }, "<command>"));
 
             hardCmds.Add("changelog", new HardCmd(1, 1, async (args, msg, s) =>
             {
-                if (msg.sender.ServerPermissions.Administrator)
+                string arg = args[0].ToLowerInvariant();
+                if (arg == "enable")
                 {
-                    string arg = args[0].ToLowerInvariant();
-                    if (arg == "enable")
-                    {
-                        s.ShowChanges = true;
-                        await msg.channel.SendMessage("Changelog enabled for server " + msg.server.Name);
-                    }
-                    else if (arg == "disable")
-                    {
-                        s.ShowChanges = false;
-                        await msg.channel.SendMessage("Changelog disabled for server " + msg.server.Name);
-                    }
-                    await s.SaveAsync();
+                    s.ShowChanges = true;
+                    await msg.channel.SendMessage("Changelog enabled for server " + msg.server.Name);
                 }
-                else await msg.channel.SendMessage("You don't have sufficent permissons.");
-            }));
+                else if (arg == "disable")
+                {
+                    s.ShowChanges = false;
+                    await msg.channel.SendMessage("Changelog disabled for server " + msg.server.Name);
+                }
+                await s.SaveAsync();
+            }, "<action>`\nActions: `enable, disable", true));
 
             hardCmds.Add("inform", new HardCmd(2, 2, async (args, msg, s) =>
             {
@@ -247,7 +225,47 @@ namespace DuckBot
                     await s.SaveAsync();
                 }
                 else await msg.channel.SendMessage("No user " + args[0] + " found on this server!");
-            }));
+            }, "<user> <message>"));
+
+            hardCmds.Add("help", new HardCmd(0, 2, async (args, msg, s) =>
+            {
+                if (args.Length > 0)
+                {
+                    string cmd = args[0].ToLowerInvariant();
+                    if (hardCmds.ContainsKey(cmd))
+                    {
+                        HardCmd hcmd = hardCmds[cmd];
+                        string ret = "Usage: `" + cmd + " " + hcmd.help + "`\n";
+                        ret += "Notation: `\n";
+                        if (hcmd.help.Contains("<")) ret += "< > - Required, ";
+                        if (hcmd.help.Contains("[")) ret += "[ ] - Optional, ";
+                        if (hcmd.help.Contains("*")) ret += "' ' - Literal string, ";
+                        ret = ret.Remove(ret.Length - 2) + "`";
+                        await msg.channel.SendMessage(ret);
+                    }
+                    else if (s.Cmds.ContainsKey(cmd))
+                    {
+                        Command c = s.Cmds[cmd];
+                        await msg.channel.SendMessage("Command name: `" + cmd + "`\nCreated: `" + c.CreationDate.ToShortDateString() + "` by `" + c.Creator + "`\nType: `" + c.Type + "`\nContent: " + c.AsCodeBlock());
+                    }
+                    else await msg.channel.SendMessage("No command with specified name exists.");
+                }
+                else
+                {
+                    string ret = "Built-in commands list:\n``` ";
+                    foreach (string cmd in new SortedSet<string>(hardCmds.Keys))
+                        ret += cmd + ", ";
+                    ret = ret.Remove(ret.Length - 2) + " ```\n";
+                    if (s.Cmds.Count > 0)
+                    {
+                        ret += "User-made commands list:\n``` ";
+                        foreach (string cmd in new SortedSet<string>(s.Cmds.Keys))
+                            ret += cmd + ", ";
+                        ret = ret.Remove(ret.Length - 2) + " ```\n";
+                    }
+                    await msg.channel.SendMessage(ret);
+                }
+            }, "[command]"));
         }
 
         private static bool UserActive(User u) { return u.Status == UserStatus.Online || u.Status == UserStatus.DoNotDisturb; }
@@ -270,7 +288,7 @@ namespace DuckBot
 
         private void MessageRecieved(object sender, MessageEventArgs e)
         {
-            if (e.Message.RawText.StartsWith("»") && e.User.Id != dClient.CurrentUser.Id)
+            if (e.Message.RawText.StartsWith(">") && e.User.Id != dClient.CurrentUser.Id)
                 System.Threading.Tasks.Task.Run(async () =>
                 {
                     string command = e.Message.RawText.Substring(1);
@@ -283,13 +301,18 @@ namespace DuckBot
                         if (hardCmds.ContainsKey(command))
                         {
                             HardCmd hcmd = hardCmds[command];
-                            string[] args = e.Message.RawText.Substring(ix + 2).Split(new char[] { ' ' }, hcmd.argsMax, StringSplitOptions.RemoveEmptyEntries);
-                            if (args.Length >= hcmd.argsMin)
+                            if (hcmd.admin && (!e.User.ServerPermissions.Administrator || e.User.IsBot))
+                                await e.Channel.SendMessage("Only human server administrators can use this command!");
+                            else
                             {
-                                await e.Channel.SendIsTyping();
-                                hcmd.func(args, new CmdParams(e), s);
+                                string[] args = ix == -1 ? new string[0] : e.Message.RawText.Substring(ix + 2).Split(new char[] { ' ' }, hcmd.argsMax, StringSplitOptions.RemoveEmptyEntries);
+                                if (args.Length >= hcmd.argsMin)
+                                {
+                                    await e.Channel.SendIsTyping();
+                                    hcmd.func(args, new CmdParams(e), s);
+                                }
+                                else await e.Channel.SendMessage("Insufficient amount of parameters specified.");
                             }
-                            else await e.Channel.SendMessage("Insufficient amount of parameters specified.");
                         }
                         else if (s.Cmds.ContainsKey(command))
                         {

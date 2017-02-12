@@ -93,6 +93,15 @@ namespace DuckBot
 
         internal Command() { }
 
+        public string AsCodeBlock()
+        {
+            string pre;
+            if (Type == CmdType.CSharp) pre = "cs";
+            else if (Type == CmdType.Lua) pre = "lua";
+            else pre = "";
+            return "```" + pre + "\n" + Content + "\n```";
+        }
+
         public void Load(BinaryReader br)
         {
             lock (this)
