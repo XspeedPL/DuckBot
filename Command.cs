@@ -69,15 +69,23 @@ namespace DuckBot
             });
             FuncVars.Add("if", (args, msg) =>
             {
-                if (args.Length != 5) return "ERROR";
-                bool res;
-                if (args[1] == "!=") res = args[0] != args[2];
-                else res = args[0] == args[2];
-                return res ? args[3] : args[4];
+                if (args.Length != 4) return "ERROR";
+                return args[0].Length == args[1].Length ? args[2] : args[3];
             });
             FuncVars.Add("length", (args, msg) =>
             {
                 return args.Length > 0 ? args[0].Length.ToString() : "ERROR";
+            });
+            FuncVars.Add("substr", (args, msg) =>
+            {
+                string s = args[0];
+                int i1 = int.Parse(args[1]);
+                if (args.Length > 2)
+                {
+                    int i2 = int.Parse(args[2]);
+                    return s.Substring(i1 >= 0 ? i1 : s.Length + i1, i2);
+                }
+                else return s.Substring(i1 >= 0 ? i1 : s.Length + i1);
             });
         }
 
@@ -136,13 +144,13 @@ namespace DuckBot
 
         public string CmdEngine(string content, CmdParams msg, int depth = 0)
         {
-            return depth > 10 ? content : CmdPattern.Replace(content, (match) =>
+            return depth > 10 || !content.Contains("{") ? content : CmdPattern.Replace(content, (match) =>
             {
                 string cmd = match.Groups[1].Value;
                 if (FuncVars.ContainsKey(cmd))
                 {
                     string arg = match.Groups[2].Success ? match.Groups[2].Value.Substring(1) : null;
-                    if (arg != null && arg.Contains("{")) arg = CmdEngine(arg, msg, depth + 1);
+                    if (arg != null) arg = CmdEngine(arg, msg, depth + 1);
                     return FuncVars[cmd](arg == null ? new string[0] : arg.Split(','), msg);
                 }
                 else return match.Value;
@@ -166,7 +174,7 @@ namespace DuckBot
                         string match = cases[i].Substring(cases[i].IndexOf('"') + 1);
                         int ix = match.IndexOf('"');
                         string data = match.Substring(ix + 1).Trim();
-                        if (cases[0] == match.Remove(ix))
+                        if (cases[0] == CmdEngine(match.Remove(ix), msg))
                             return CmdEngine(data, msg);
                     }
                 }

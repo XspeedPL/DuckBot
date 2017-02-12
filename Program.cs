@@ -183,17 +183,6 @@ namespace DuckBot
                 else await msg.channel.SendMessage("No user-made command with specified name exists.");
             }, "<command>", true));
 
-            hardCmds.Add("info", new HardCmd(1, 2, async (args, msg, s) =>
-            {
-                string cmd = args[0].ToLowerInvariant();
-                if (s.Cmds.ContainsKey(cmd))
-                {
-                    Command c = s.Cmds[cmd];
-                    await msg.channel.SendMessage("Command name: `" + cmd + "`\nCreated: `" + c.CreationDate.ToShortDateString() + "` by `" + c.Creator + "`\nType: `" + c.Type + "`\nContent: " + c.AsCodeBlock());
-                }
-                else await msg.channel.SendMessage("No user-made command with specified name exists.");
-            }, "<command>"));
-
             hardCmds.Add("changelog", new HardCmd(1, 1, async (args, msg, s) =>
             {
                 string arg = args[0].ToLowerInvariant();
