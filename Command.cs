@@ -12,10 +12,12 @@ namespace DuckBot
 {
     public class Command : IBinary
     {
-        private static readonly Regex CmdPattern = new Regex(@"(?<!\\){([^{}:, ]+?)(:(?>{(?<n>)|}(?<-n>)|[^{}]+)*(?(n)(?!)))?}");
+        private static readonly Regex CmdPattern = new Regex(@"(?<!\^){([^{}:,|^\\ ]+?)(:(?>{(?<n>)|}(?<-n>)|[^{}]+)*(?(n)(?!)))?}");
 
         public delegate string CmdAct(string[] args, CmdParams msg);
         private static readonly Dictionary<string, CmdAct> FuncVars = new Dictionary<string, CmdAct>();
+
+        private static char[] SpecialChars = { '{', ',', '|' };
 
         static Command()
         {
@@ -26,7 +28,7 @@ namespace DuckBot
             });
             FuncVars.Add("input", (args, msg) =>
             {
-                if (args.Length > 0)
+                if (args.Length >= 1)
                     try
                     {
                         int ix = int.Parse(args[0]);
@@ -41,7 +43,7 @@ namespace DuckBot
             });
             FuncVars.Add("mention", (args, msg) =>
             {
-                if (args.Length > 0)
+                if (args.Length >= 1)
                 {
                     User u = Program.FindUser(msg.server, args[0]);
                     return u == null ? "ERROR" : u.Mention;
@@ -52,29 +54,31 @@ namespace DuckBot
             {
                 try
                 {
-                    if (args.Length > 1)
-                    {
-                        int min = int.Parse(args[0]);
-                        return (Program.Rand.Next(int.Parse(args[1]) - min) - min).ToString();
-                    }
-                    else if (args.Length == 1) return Program.Rand.Next(int.Parse(args[0])).ToString();
+                    int i1 = int.Parse(args[0]);
+                    if (args.Length >= 2)
+                        return (Program.Rand.Next(int.Parse(args[1]) - i1) + i1).ToString();
+                    else return Program.Rand.Next(i1).ToString();
                 }
-                catch { }
-                return "ERROR";
+                catch { return "ERROR"; }
             });
             FuncVars.Add("command", (args, msg) =>
             {
-                Command c = Program.Inst.GetCommand(msg.server, args[0]);
-                return c == null ? "ERROR" : c.Run(new CmdParams(msg, args[1]));
+                if (args.Length >= 1)
+                {
+                    Command c = Program.Inst.GetCommand(msg.server, args[0]);
+                    if (c != null) return c.Run(new CmdParams(msg, args.Length >= 2 ? args[1] : ""));
+                }
+                return "ERROR";
             });
             FuncVars.Add("if", (args, msg) =>
             {
-                if (args.Length != 4) return "ERROR";
-                return args[0].Length == args[1].Length ? args[2] : args[3];
+                if (args.Length >= 3)
+                    return args[0].Length == args[1].Length ? args[2] : args[3];
+                else return "ERROR";
             });
             FuncVars.Add("length", (args, msg) =>
             {
-                return args.Length > 0 ? args[0].Length.ToString() : "ERROR";
+                return args.Length >= 1 ? args[0].Length.ToString() : "ERROR";
             });
             FuncVars.Add("substr", (args, msg) =>
             {
@@ -82,7 +86,7 @@ namespace DuckBot
                 {
                     string s = args[0];
                     int i1 = int.Parse(args[1]);
-                    if (args.Length > 2)
+                    if (args.Length >= 3)
                     {
                         int i2 = int.Parse(args[2]);
                         return s.Substring(i1 >= 0 ? i1 : s.Length + i1, i2);
@@ -123,7 +127,11 @@ namespace DuckBot
             FuncVars.Add("eval", (args, msg) =>
             {
                 string arg = string.Join(",", args);
-                return CmdEngine(arg.Replace("\\{", "{"), msg);
+                return CmdEngine(arg.Replace("^{", "{"), msg);
+            });
+            FuncVars.Add("find", (args, msg) =>
+            {
+                return args.Length >= 2 ? args[0].IndexOf(args[1]).ToString() : "ERROR";
             });
         }
 
@@ -180,7 +188,38 @@ namespace DuckBot
             Content = content;
         }
 
-        public static string CmdEngine(string content, CmdParams msg, int depth = 0)
+        private static string[] EscSplit(string args, char delim)
+        {
+            List<string> ret = new List<string>();
+            int old, prev, ix;
+            if (args[0] == delim)
+            {
+                ret.Add("");
+                old = 1;
+            }
+            else old = 0;
+            prev = old;
+            while ((ix = args.IndexOf(delim, prev)) != -1)
+            {
+                if (args[ix - 1] != '^')
+                {
+                    ret.Add(args.Substring(old, ix - old));
+                    old = ix + 1;
+                }
+                prev = ix + 1;
+            }
+            ret.Add(args.Substring(old));
+            return ret.ToArray();
+        }
+
+        public static string CmdEngine(string content, CmdParams msg)
+        {
+            string ret = CmdEngine(content, msg, 0);
+            foreach (char c in SpecialChars) ret = ret.Replace("^" + c, c.ToString());
+            return ret;
+        }
+
+        private static string CmdEngine(string content, CmdParams msg, int depth)
         {
             return depth > 10 || !content.Contains("{") ? content : CmdPattern.Replace(content, (match) =>
             {
@@ -189,7 +228,7 @@ namespace DuckBot
                 {
                     string arg = match.Groups[2].Success ? match.Groups[2].Value.Substring(1) : null;
                     if (arg != null) arg = CmdEngine(arg, msg, depth + 1);
-                    return FuncVars[cmd](arg == null ? new string[0] : arg.Split(','), msg);
+                    return FuncVars[cmd](arg == null ? new string[0] : EscSplit(arg, ','), msg);
                 }
                 else return match.Value;
             });
@@ -200,7 +239,7 @@ namespace DuckBot
             if (Type == CmdType.Text) return CmdEngine(Content, msg);
             else if (Type == CmdType.Switch)
             {
-                string[] cases = Content.Split('|');
+                string[] cases = EscSplit(Content, '|');
                 cases[0] = CmdEngine(cases[0].Trim(), msg);
                 for (int i = 1; i < cases.Length; ++i)
                 {
@@ -216,7 +255,7 @@ namespace DuckBot
                             return CmdEngine(data, msg);
                     }
                 }
-                return "Switch didn't return anything";
+                return "Switch didn't return anything.";
             }
             else if (Type == CmdType.Lua)
             {
@@ -234,7 +273,7 @@ namespace DuckBot
                         using (LuaFunction func = (LuaFunction)lua.DoString(code, "sandbox")[0])
                         {
                             object[] res = func.Call(source, msg.args, msg.sender, msg.server, msg.channel);
-                            return proxy.Length == 0 ? "Script didn't return anything" : proxy.Contents;
+                            return proxy.Length == 0 ? "Script didn't return anything." : proxy.Contents;
                         }
                     }
                     catch (NLua.Exceptions.LuaScriptException ex) { return "An error has occured: " + ex.Message + "\n``` " + ex.Source + " ```"; }

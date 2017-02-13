@@ -256,7 +256,7 @@ namespace DuckBot
                 {
                     string message = args[1];
                     if (!message.StartsWith("`")) message = "`" + message + "`";
-                    message = "`[" + DateTime.UtcNow.ToShortDateString() + "] " + msg.channel.Mention + ":` " + message;
+                    message = "`[" + DateTime.UtcNow.ToShortDateString() + "]` " + msg.channel.Mention + ": " + message;
                     string removed = s.AddMessage(msg.sender.Id, u.Id, message);
                     await msg.channel.SendMessage("Okay, I'll deliver the message when " + u.Name + " goes online");
                     if (!string.IsNullOrWhiteSpace(removed))
@@ -342,7 +342,7 @@ namespace DuckBot
                     else await msg.channel.SendMessage("Insufficient amount of parameters specified.");
                 }
                 else await msg.channel.SendMessage("Unknown subcommand specified.");
-            }, "<action> [variable]`\nActions: `list, remove", true));
+            }, "<action> [varname]`\nActions: `list, remove", true));
         }
 
         private static bool UserActive(User u) { return u.Status == UserStatus.Online || u.Status == UserStatus.DoNotDisturb; }
@@ -394,8 +394,8 @@ namespace DuckBot
                         else if (s.Cmds.ContainsKey(command))
                         {
                             await e.Channel.SendIsTyping();
-                            string result = s.Cmds[command].Run(new CmdParams(e));
-                            await e.Channel.SendMessage(result);
+                            string res = s.Cmds[command].Run(new CmdParams(e));
+                            await e.Channel.SendMessage(string.IsNullOrWhiteSpace(res) ? "Command didn't return anything." : res);
                         }
                     }
                     catch (Exception ex)
