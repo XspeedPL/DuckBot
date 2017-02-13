@@ -9,7 +9,7 @@ namespace DuckBot
         private static readonly int Version = -1;
 
         public readonly ulong ServerID;
-        public readonly Dictionary<string, Command> Cmds;
+        public readonly Dictionary<string, SoftCmd> Cmds;
         public readonly Dictionary<string, string> Vars;
         internal readonly Dictionary<ulong, Inbox> Msgs;
 
@@ -32,7 +32,7 @@ namespace DuckBot
         public Session(ulong sid)
         {
             ServerID = sid;
-            Cmds = new Dictionary<string, Command>();
+            Cmds = new Dictionary<string, SoftCmd>();
             Vars = new Dictionary<string, string>();
             Msgs = new Dictionary<ulong, Inbox>();
             ShowChanges = false;
@@ -62,7 +62,7 @@ namespace DuckBot
                 while (count-- > 0)
                 {
                     string name = br.ReadString();
-                    Command cmd = new Command();
+                    SoftCmd cmd = new SoftCmd();
                     cmd.Load(br);
                     Cmds.Add(name, cmd);
                 }
@@ -84,8 +84,7 @@ namespace DuckBot
                         string value = br.ReadString();
                         Vars.Add(name, value);
                     }
-                    try { Language = br.ReadString(); }
-                    catch { }
+                    Language = br.ReadString();
                 }
             }
         }
@@ -104,7 +103,7 @@ namespace DuckBot
                     PendingSave = false;
                     bw.Write(Version);
                     bw.Write(Cmds.Count);
-                    foreach (KeyValuePair<string, Command> kvp in Cmds)
+                    foreach (KeyValuePair<string, SoftCmd> kvp in Cmds)
                     {
                         bw.Write(kvp.Key);
                         kvp.Value.Save(bw);

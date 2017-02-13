@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using DuckBot.Resources;
@@ -11,28 +12,13 @@ namespace DuckBot
     {
         public static readonly Random Rand = new Random();
         internal static Program Inst = null;
-        
-        public struct HardCmd
-        {
-            public delegate void CmdAct(string[] args, CmdParams msg, Session s);
-
-            public readonly CmdAct func;
-            public readonly byte argsMin, argsMax;
-            public readonly bool admin;
-            public readonly string help;
-
-            public HardCmd(byte minArgs, byte maxArgs, CmdAct action, string helpText, bool reqAdmin = false)
-            {
-                argsMin = minArgs; argsMax = maxArgs; func = action; help = helpText; admin = reqAdmin;
-            }
-        }
 
         private readonly Dictionary<string, HardCmd> hardCmds;
-        private readonly DiscordClient dClient;
+        private readonly DiscordClient client;
         private readonly DuckData data;
         private readonly string token, prefix;
         private readonly Task bgSaver;
-        private readonly System.Threading.CancellationTokenSource bgCancel;
+        private readonly CancellationTokenSource bgCancel;
 
         static void Main(string[] args)
         {
@@ -49,14 +35,14 @@ namespace DuckBot
                     Inst.LoadData();
                     Inst.Start();
                     while (Console.ReadKey(true).Key != ConsoleKey.Q)
-                        System.Threading.Thread.Sleep(100);
+                        Thread.Sleep(100);
                 }
             }
         }
 
         private Program(string userToken, string cmdPrefix)
         {
-            dClient = new DiscordClient(x =>
+            client = new DiscordClient(x =>
             {
                 x.AppName = Console.Title;
                 x.LogLevel = LogSeverity.Info;
@@ -67,7 +53,7 @@ namespace DuckBot
             data = new DuckData();
             hardCmds = new Dictionary<string, HardCmd>();
             CreateCommands();
-            bgCancel = new System.Threading.CancellationTokenSource();
+            bgCancel = new CancellationTokenSource();
             bgSaver = Task.Run(AsyncSaver);
         }
 
@@ -92,8 +78,8 @@ namespace DuckBot
         public void Dispose()
         {
             Log(LogSeverity.Info, Strings.exit_start);
-            dClient.Disconnect().Wait();
-            dClient.Dispose();
+            client.Disconnect().Wait();
+            client.Dispose();
             bgCancel.Cancel();
             bgSaver.Wait();
             bgSaver.Dispose();
@@ -141,10 +127,10 @@ namespace DuckBot
 
         private void Start()
         {
-            Log(LogSeverity.Info, string.Format(Strings.start_info, dClient.Config.AppName));
-            dClient.MessageReceived += MessageRecieved;
-            dClient.UserUpdated += UserUpdated;
-            dClient.Connect(token, TokenType.Bot);
+            Log(LogSeverity.Info, string.Format(Strings.start_info, client.Config.AppName));
+            client.MessageReceived += MessageRecieved;
+            client.UserUpdated += UserUpdated;
+            client.Connect(token, TokenType.Bot);
         }
 
         internal Session CreateSession(Server srv)
@@ -190,7 +176,7 @@ namespace DuckBot
                     return;
                 }
                 string cmd = args[1].ToLowerInvariant(), oldContent = " ";
-                Command nc = new Command(args[0], args[2], msg.sender.Name);
+                SoftCmd nc = new SoftCmd(args[0], args[2], msg.sender.Name);
                 lock (s)
                     if (s.Cmds.ContainsKey(cmd))
                     {
@@ -281,7 +267,7 @@ namespace DuckBot
                             string ret;
                             lock (s)
                             {
-                                Command c = s.Cmds[cmd];
+                                SoftCmd c = s.Cmds[cmd];
                                 ret = string.Format(Strings.ret_cmdinfo, cmd, c.CreationDate.ToShortDateString(), c.Creator);
                                 ret += "\n" + Strings.lab_type.StartCase() + ": `" + c.Type + "`\n" + Strings.lab_content.StartCase() + ": " + c.AsCodeBlock();
                             }
@@ -346,7 +332,7 @@ namespace DuckBot
                 if (s.Msgs.ContainsKey(e.After.Id))
                 {
                     Inbox i = s.Msgs[e.After.Id];
-                    Channel toSend = await dClient.CreatePrivateChannel(e.After.Id);
+                    Channel toSend = await client.CreatePrivateChannel(e.After.Id);
                     i.Deliver(e.Server, toSend);
                     lock (s.Msgs) s.Msgs.Remove(e.After.Id);
                     s.SetPending();
@@ -356,7 +342,7 @@ namespace DuckBot
         
         private void MessageRecieved(object sender, MessageEventArgs e)
         {
-            if (e.Message.RawText.StartsWith(prefix) && e.User.Id != dClient.CurrentUser.Id)
+            if (e.Message.RawText.StartsWith(prefix) && e.User.Id != client.CurrentUser.Id)
                 Task.Run(async () =>
                 {
                     string cmd = e.Message.RawText.Substring(1);
@@ -364,7 +350,7 @@ namespace DuckBot
                     if (ix != -1) cmd = cmd.Remove(ix);
                     cmd = cmd.ToLowerInvariant();
                     Session s = CreateSession(e.Server);
-                    System.Threading.Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo(s.Language);
+                    Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo(s.Language);
                     try
                     {
                         if (hardCmds.ContainsKey(cmd))

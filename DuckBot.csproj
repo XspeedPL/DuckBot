@@ -93,9 +93,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Command.cs" />
+    <Compile Include="FuncVars.cs" />
+    <Compile Include="HardCmd.cs" />
+    <Compile Include="SoftCmd.cs" />
     <Compile Include="DuckData.cs" />
-    <Compile Include="IBinary.cs" />
     <Compile Include="Inbox.cs" />
     <Compile Include="CmdParams.cs" />
     <Compile Include="Program.cs" />

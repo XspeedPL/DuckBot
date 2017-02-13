@@ -4,7 +4,7 @@ using Discord;
 
 namespace DuckBot
 {
-    internal sealed class Inbox : IBinary
+    internal sealed class Inbox
     {
         private readonly Dictionary<ulong, string[]> queue = new Dictionary<ulong, string[]>();
 
