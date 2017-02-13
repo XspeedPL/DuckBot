@@ -12,7 +12,7 @@ namespace DuckBot
 {
     public class Command : IBinary
     {
-        private static readonly Regex CmdPattern = new Regex(@"{([^{}:, ]+?)(:(?>{(?<n>)|}(?<-n>)|[^{}]+)*(?(n)(?!)))?}");
+        private static readonly Regex CmdPattern = new Regex(@"(?<!\\){([^{}:, ]+?)(:(?>{(?<n>)|}(?<-n>)|[^{}]+)*(?(n)(?!)))?}");
 
         public delegate string CmdAct(string[] args, CmdParams msg);
         private static readonly Dictionary<string, CmdAct> FuncVars = new Dictionary<string, CmdAct>();
@@ -91,6 +91,40 @@ namespace DuckBot
                 }
                 catch { return "ERROR"; }
             });
+            FuncVars.Add("date", (args, msg) =>
+            {
+                if (args.Length >= 1) return DateTime.UtcNow.ToString(args[0]);
+                else return DateTime.UtcNow.ToShortDateString();
+            });
+            FuncVars.Add("time", (args, msg) =>
+            {
+                if (args.Length >= 1 && args[0] == "long") return DateTime.UtcNow.ToLongTimeString();
+                else return DateTime.UtcNow.ToShortTimeString();
+            });
+            FuncVars.Add("get", (args, msg) =>
+            {
+                Session s = Program.Inst.CreateSession(msg.server);
+                lock (s)
+                    return args.Length >= 1 && s.Vars.ContainsKey(args[0]) ? s.Vars[args[0]] : "ERROR";
+            });
+            FuncVars.Add("set", (args, msg) =>
+            {
+                if (args.Length >= 2)
+                {
+                    Session s = Program.Inst.CreateSession(msg.server);
+                    lock (s)
+                        if (s.Vars.ContainsKey(args[0])) s.Vars[args[0]] = args[1];
+                        else s.Vars.Add(args[0], args[1]);
+                    s.SetPending();
+                    return "";
+                }
+                else return "ERROR";
+            });
+            FuncVars.Add("eval", (args, msg) =>
+            {
+                string arg = string.Join(",", args);
+                return CmdEngine(arg.Replace("\\{", "{"), msg);
+            });
         }
 
         public enum CmdType
@@ -146,7 +180,7 @@ namespace DuckBot
             Content = content;
         }
 
-        public string CmdEngine(string content, CmdParams msg, int depth = 0)
+        public static string CmdEngine(string content, CmdParams msg, int depth = 0)
         {
             return depth > 10 || !content.Contains("{") ? content : CmdPattern.Replace(content, (match) =>
             {
