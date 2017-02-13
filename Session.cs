@@ -14,10 +14,10 @@ namespace DuckBot
         internal readonly Dictionary<ulong, Inbox> Msgs;
 
         public bool ShowChanges { get; internal set; }
-
+        public string Language { get; private set; }
         public bool PendingSave { get; private set; }
 
-        public int PesistVars
+        public int PesistentVars
         {
             get
             {
@@ -37,9 +37,21 @@ namespace DuckBot
             Msgs = new Dictionary<ulong, Inbox>();
             ShowChanges = false;
             PendingSave = false;
+            Language = "en-US";
         }
 
         public void SetPending() { PendingSave = true; }
+
+        public bool SetLanguage(string langCode)
+        {
+            if (Utils.IsCultureAvailable(langCode))
+            {
+                Language = langCode;
+                SetPending();
+                return true;
+            }
+            else return false;
+        }
 
         public void Load(BinaryReader br)
         {
@@ -72,6 +84,8 @@ namespace DuckBot
                         string value = br.ReadString();
                         Vars.Add(name, value);
                     }
+                    try { Language = br.ReadString(); }
+                    catch { }
                 }
             }
         }
@@ -102,13 +116,14 @@ namespace DuckBot
                         kvp.Value.Save(bw);
                     }
                     bw.Write(ShowChanges);
-                    bw.Write(PesistVars);
+                    bw.Write(PesistentVars);
                     foreach (KeyValuePair<string, string> kvp in Vars)
                         if (!kvp.Key.StartsWith("_"))
                         {
                             bw.Write(kvp.Key);
                             bw.Write(kvp.Value);
                         }
+                    bw.Write(Language);
                 }
         }
 

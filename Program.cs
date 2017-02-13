@@ -1,8 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using Discord;
 using System.IO;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using DuckBot.Resources;
+using Discord;
 
 namespace DuckBot
 {
@@ -36,12 +37,13 @@ namespace DuckBot
         static void Main(string[] args)
         {
             Console.Title = "DuckBot";
-            if (!DuckData.TokenFile.Exists) Log(LogSeverity.Error, "Token file hasn't been found!");
+            if (!DuckData.LogFile.Exists) File.WriteAllText(DuckData.LogFile.FullName, "");
+            if (!DuckData.TokenFile.Exists) Log(LogSeverity.Error, Strings.start_err_notoken);
             else
             {
-                string token = File.ReadAllText(DuckData.TokenFile.FullName);
+                string token = File.ReadAllText(DuckData.TokenFile.FullName, System.Text.Encoding.UTF8);
                 int ix = token.IndexOf(' ');
-                if (ix < 1) Log(LogSeverity.Error, "Token file has wrong format!");
+                if (ix < 1) Log(LogSeverity.Error, Strings.start_err_badtoken);
                 else using (Inst = new Program(token.Substring(ix + 1), token.Remove(ix)))
                 {
                     Inst.LoadData();
@@ -56,7 +58,7 @@ namespace DuckBot
         {
             dClient = new DiscordClient(x =>
             {
-                x.AppName = "DuckBot";
+                x.AppName = Console.Title;
                 x.LogLevel = LogSeverity.Info;
                 x.LogHandler = Log;
             });
@@ -89,14 +91,14 @@ namespace DuckBot
 
         public void Dispose()
         {
-            Log(LogSeverity.Info, "Shutting down DuckBot...");
+            Log(LogSeverity.Info, Strings.exit_start);
             dClient.Disconnect().Wait();
             dClient.Dispose();
             bgCancel.Cancel();
             bgSaver.Wait();
             bgSaver.Dispose();
             bgCancel.Dispose();
-            Log(LogSeverity.Info, "Exiting gracefully");
+            Log(LogSeverity.Info, Strings.exit_end);
         }
 
         private void SaveWhitelist()
@@ -124,7 +126,7 @@ namespace DuckBot
                             data.AdvancedUsers.Add(ulong.Parse(line));
                     }
                 }
-                catch (Exception ex) { Log(new Exception("Couldn't load whitelist file", ex)); }
+                catch (Exception ex) { Log(new Exception(string.Format(Strings.start_err_fileload, DuckData.WhitelistFile.Name), ex)); }
             foreach (FileInfo fi in DuckData.SessionsDir.EnumerateFiles("session_*.dat"))
                 try
                 {
@@ -134,13 +136,12 @@ namespace DuckBot
                         s.Load(br);
                     data.ServerSessions.Add(id, s);
                 }
-                catch (Exception ex) { Log(new Exception("Couldn't load " + fi.Name, ex)); }
+                catch (Exception ex) { Log(new Exception(string.Format(Strings.start_err_fileload, fi.Name), ex)); }
         }
 
         private void Start()
         {
-            if (!DuckData.LogFile.Exists) File.WriteAllText(DuckData.LogFile.FullName, "");
-            Log(LogSeverity.Info, "Starting DuckBot, press 'Q' to quit!");
+            Log(LogSeverity.Info, string.Format(Strings.start_info, dClient.Config.AppName));
             dClient.MessageReceived += MessageRecieved;
             dClient.UserUpdated += UserUpdated;
             dClient.Connect(token, TokenType.Bot);
@@ -158,12 +159,6 @@ namespace DuckBot
                 else return data.ServerSessions[srv.Id];
         }
 
-        public Command GetCommand(Server srv, string name)
-        {
-            Session s = data.ServerSessions[srv.Id];
-            return s.Cmds.ContainsKey(name) ? s.Cmds[name] : null;
-        }
-
         private void CreateCommands()
         {
             hardCmds.Add("add", new HardCmd(3, 3, async (args, msg, s) =>
@@ -176,15 +171,11 @@ namespace DuckBot
                     {
                         if (msg.sender.Id != DuckData.SuperUserId && (args[2].Contains("Assembly") || args[2].Contains("System.IO") || args[2].Contains("Environment")))
                         {
-                            await msg.channel.SendMessage("Unpermitted keywords have been found in the code.");
+                            await msg.channel.SendMessage(Strings.err_badcode);
                             return;
                         }
                     }
-                    else
-                    {
-                        await msg.channel.SendMessage("You don't have sufficent permissons.");
-                        return;
-                    }
+                    else { await msg.channel.SendMessage(Strings.err_permissions); return; }
                 }
                 else if (args[0].ToLower() == "whitelist")
                 {
@@ -193,25 +184,26 @@ namespace DuckBot
                         lock (data.AdvancedUsers)
                             data.AdvancedUsers.Add(ulong.Parse(args[1]));
                         SaveWhitelist();
-                        await msg.channel.SendMessage("The ID has been added to whitelist!");
+                        await msg.channel.SendMessage(Strings.ret_success);
                     }
-                    else await msg.channel.SendMessage("You don't have sufficent permissons.");
+                    else await msg.channel.SendMessage(Strings.err_permissions);
                     return;
                 }
                 string cmd = args[1].ToLowerInvariant(), oldContent = " ";
+                Command nc = new Command(args[0], args[2], msg.sender.Name);
                 lock (s)
                     if (s.Cmds.ContainsKey(cmd))
                     {
                         oldContent = s.Cmds[cmd].AsCodeBlock();
-                        s.Cmds[cmd] = new Command(args[0], args[2], msg.sender.Name);
+                        s.Cmds[cmd] = nc;
                     }
-                    else s.Cmds.Add(cmd, new Command(args[0], args[2], msg.sender.Name));
+                    else s.Cmds.Add(cmd, nc);
                 s.SetPending();
                 string toSend;
-                if (s.ShowChanges) lock (s) toSend = "Changed from: " + oldContent + "\nTo: " + s.Cmds[cmd].AsCodeBlock();
-                else toSend = "Done!";
+                if (s.ShowChanges) lock (s) toSend = string.Format(Strings.ret_changes, oldContent, s.Cmds[cmd].AsCodeBlock());
+                else toSend = Strings.ret_success;
                 await msg.channel.SendMessage(toSend);
-            }, "<type> <name> <content>`\nTypes: `csharp, lua, switch, text", true));
+            }, string.Format("<{0}> <{1}> <{2}>", Strings.lab_type, Strings.lab_name, Strings.lab_content) + "`\n" + Strings.lab_type.StartCase() + ": `csharp, lua, switch, text", true));
 
             hardCmds.Add("remove", new HardCmd(1, 2, async (args, msg, s) =>
             {
@@ -223,31 +215,30 @@ namespace DuckBot
                     string log;
                     lock (s)
                     {
-                        log = s.ShowChanges ? "\nContent: " + s.Cmds[cmd].AsCodeBlock() : "";
+                        log = s.ShowChanges ? "\n" + Strings.lab_content.StartCase() + ": " + s.Cmds[cmd].AsCodeBlock() : "";
                         s.Cmds.Remove(cmd);
                     }
-                    await msg.channel.SendMessage("Removed command `" + cmd + "`." + log);
+                    await msg.channel.SendMessage(string.Format(Strings.ret_removed, Strings.lab_cmd, cmd) + log);
                     s.SetPending();
                 }
-                else await msg.channel.SendMessage("No user-made command with specified name exists.");
-            }, "<command>", true));
+                else await msg.channel.SendMessage(string.Format(Strings.err_nogeneric, Strings.lab_usercmd));
+            }, string.Format("<{0}>", Strings.lab_cmd), true));
 
-            hardCmds.Add("changelog", new HardCmd(1, 1, async (args, msg, s) =>
+            hardCmds.Add("showchanges", new HardCmd(1, 1, async (args, msg, s) =>
             {
                 string arg = args[0].ToLowerInvariant();
                 if (arg == "enable")
-                {
                     lock (s) s.ShowChanges = true;
-                    await msg.channel.SendMessage("Changelog enabled for server " + msg.server.Name);
-                }
                 else if (arg == "disable")
-                {
                     lock (s) s.ShowChanges = false;
-                    await msg.channel.SendMessage("Changelog disabled for server " + msg.server.Name);
+                else
+                {
+                    await msg.channel.SendMessage(Strings.err_nosubcmd);
+                    return;
                 }
-                else await msg.channel.SendMessage("Unknown subcommand specified.");
                 s.SetPending();
-            }, "<action>`\nActions: `enable, disable", true));
+                await msg.channel.SendMessage(Strings.ret_success);
+            }, string.Format("<{0}>", Strings.lab_action) + "`\n" + Strings.lab_action.StartCase() + ": `enable, disable", true));
 
             hardCmds.Add("inform", new HardCmd(2, 2, async (args, msg, s) =>
             {
@@ -258,13 +249,13 @@ namespace DuckBot
                     if (!message.StartsWith("`")) message = "`" + message + "`";
                     message = "`[" + DateTime.UtcNow.ToShortDateString() + "]` " + msg.channel.Mention + ": " + message;
                     string removed = s.AddMessage(msg.sender.Id, u.Id, message);
-                    await msg.channel.SendMessage("Okay, I'll deliver the message when " + u.Name + " goes online");
+                    await msg.channel.SendMessage(string.Format(Strings.ret_delivery, u.Name));
                     if (!string.IsNullOrWhiteSpace(removed))
-                        await msg.channel.SendMessage("This message was removed from the inbox:\n" + removed);
+                        await msg.channel.SendMessage(Strings.title_fullinbox + "\n" + removed);
                     s.SetPending();
                 }
-                else await msg.channel.SendMessage("No user " + args[0] + " found on this server!");
-            }, "<user> <message>"));
+                else await msg.channel.SendMessage(string.Format(Strings.err_nogeneric, Strings.lab_user));
+            }, string.Format("<{0}> <{1}>", Strings.lab_user, Strings.lab_message)));
 
             hardCmds.Add("help", new HardCmd(0, 2, async (args, msg, s) =>
             {
@@ -274,13 +265,12 @@ namespace DuckBot
                     if (hardCmds.ContainsKey(cmd))
                     {
                         HardCmd hcmd = hardCmds[cmd];
-                        string ret = "Usage: `" + cmd + " " + hcmd.help + "`\n";
-                        ret += "Notation: `\n";
-                        if (hcmd.help.Contains("<")) ret += "< > - Required, ";
-                        if (hcmd.help.Contains("[")) ret += "[ ] - Optional, ";
-                        if (hcmd.help.Contains("*")) ret += "' ' - Literal string, ";
-                        ret = ret.Remove(ret.Length - 2) + "`";
-                        await msg.channel.SendMessage(ret);
+                        string ret = "";
+                        if (hcmd.help.Contains("<")) ret += "< > - " + Strings.lab_required + ", ";
+                        if (hcmd.help.Contains("[")) ret += "[ ] - " + Strings.lab_optional + ", ";
+                        if (hcmd.help.Contains("'")) ret += "' ' - " + Strings.lab_literal + ", ";
+                        ret = ret.Remove(ret.Length - 2);
+                        await msg.channel.SendMessage(string.Format(Strings.ret_cmdhelp, cmd, hcmd.help, ret));
                     }
                     else
                     {
@@ -292,36 +282,37 @@ namespace DuckBot
                             lock (s)
                             {
                                 Command c = s.Cmds[cmd];
-                                ret = "Command name: `" + cmd + "`\nCreated: `" + c.CreationDate.ToShortDateString() + "` by `" + c.Creator + "`\nType: `" + c.Type + "`\nContent: " + c.AsCodeBlock();
+                                ret = string.Format(Strings.ret_cmdinfo, cmd, c.CreationDate.ToShortDateString(), c.Creator);
+                                ret += "\n" + Strings.lab_type.StartCase() + ": `" + c.Type + "`\n" + Strings.lab_content.StartCase() + ": " + c.AsCodeBlock();
                             }
                             await msg.channel.SendMessage(ret);
                         }
-                        else await msg.channel.SendMessage("No command with specified name exists.");
+                        else await msg.channel.SendMessage(string.Format(Strings.err_nogeneric, Strings.lab_cmd));
                     }
                 }
                 else
                 {
-                    string ret = "Built-in commands list:\n``` ";
+                    string ret = Strings.title_hardcmdlist + "\n``` ";
                     foreach (string cmd in new SortedSet<string>(hardCmds.Keys))
                         ret += cmd + ", ";
                     ret = ret.Remove(ret.Length - 2) + " ```\n";
                     lock (s)
                         if (s.Cmds.Count > 0)
                         {
-                            ret += "User-made commands list:\n``` ";
+                            ret += Strings.title_usercmdlist + "\n``` ";
                             foreach (string cmd in new SortedSet<string>(s.Cmds.Keys))
                                 ret += cmd + ", ";
                             ret = ret.Remove(ret.Length - 2) + " ```\n";
                         }
                     await msg.channel.SendMessage(ret);
                 }
-            }, "[command]"));
+            }, string.Format("[{0}]", Strings.lab_cmd)));
 
             hardCmds.Add("variable", new HardCmd(1, 2, async (args, msg, s) =>
             {
                 if (args[0] == "list")
                 {
-                    string ret = "Variable list:\n``` ";
+                    string ret = Strings.title_varlist + "\n``` ";
                     lock (s)
                         if (s.Vars.Count > 0)
                         {
@@ -337,12 +328,12 @@ namespace DuckBot
                     {
                         bool res;
                         lock (s) res = s.Vars.Remove(args[1]);
-                        await msg.channel.SendMessage(res ? "Removed variable `" + args[1] + "`." : "No variable with specified name exists.");
+                        await msg.channel.SendMessage(res ? string.Format(Strings.ret_removed, Strings.lab_var, args[1]) : string.Format(Strings.err_nogeneric, Strings.lab_var));
                     }
-                    else await msg.channel.SendMessage("Insufficient amount of parameters specified.");
+                    else await msg.channel.SendMessage(Strings.err_params);
                 }
-                else await msg.channel.SendMessage("Unknown subcommand specified.");
-            }, "<action> [varname]`\nActions: `list, remove", true));
+                else await msg.channel.SendMessage(Strings.err_nosubcmd);
+            }, string.Format("<{0}> [{1}]", Strings.lab_action, Strings.lab_var) + "`\n" + Strings.lab_action.StartCase() + ": `list, remove", true));
         }
 
         private static bool UserActive(User u) { return u.Status == UserStatus.Online || u.Status == UserStatus.DoNotDisturb; }
@@ -362,24 +353,25 @@ namespace DuckBot
                 }
             }
         }
-
+        
         private void MessageRecieved(object sender, MessageEventArgs e)
         {
             if (e.Message.RawText.StartsWith(prefix) && e.User.Id != dClient.CurrentUser.Id)
                 Task.Run(async () =>
                 {
-                    string command = e.Message.RawText.Substring(1);
-                    int ix = command.IndexOf(' ');
-                    if (ix != -1) command = command.Remove(ix);
-                    command = command.ToLowerInvariant();
+                    string cmd = e.Message.RawText.Substring(1);
+                    int ix = cmd.IndexOf(' ');
+                    if (ix != -1) cmd = cmd.Remove(ix);
+                    cmd = cmd.ToLowerInvariant();
                     Session s = CreateSession(e.Server);
+                    System.Threading.Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo(s.Language);
                     try
                     {
-                        if (hardCmds.ContainsKey(command))
+                        if (hardCmds.ContainsKey(cmd))
                         {
-                            HardCmd hcmd = hardCmds[command];
+                            HardCmd hcmd = hardCmds[cmd];
                             if (hcmd.admin && (!e.User.ServerPermissions.Administrator || e.User.IsBot))
-                                await e.Channel.SendMessage("Only human server administrators can use this command!");
+                                await e.Channel.SendMessage(Strings.err_notadmin);
                             else
                             {
                                 string[] args = ix == -1 ? new string[0] : e.Message.RawText.Substring(ix + 2).Split(new char[] { ' ' }, hcmd.argsMax, StringSplitOptions.RemoveEmptyEntries);
@@ -388,20 +380,20 @@ namespace DuckBot
                                     await e.Channel.SendIsTyping();
                                     hcmd.func(args, new CmdParams(e), s);
                                 }
-                                else await e.Channel.SendMessage("Insufficient amount of parameters specified.");
+                                else await e.Channel.SendMessage(Strings.err_params);
                             }
                         }
-                        else if (s.Cmds.ContainsKey(command))
+                        else if (s.Cmds.ContainsKey(cmd))
                         {
                             await e.Channel.SendIsTyping();
-                            string res = s.Cmds[command].Run(new CmdParams(e));
-                            await e.Channel.SendMessage(string.IsNullOrWhiteSpace(res) ? "Command didn't return anything." : res);
+                            string res = s.Cmds[cmd].Run(new CmdParams(e));
+                            await e.Channel.SendMessage(string.IsNullOrWhiteSpace(res) ? Strings.ret_empty_cmd : res);
                         }
                     }
                     catch (Exception ex)
                     {
                         Log(ex);
-                        await e.Channel.SendMessage("Ooops, seems like an exception happened: " + ex.Message);
+                        await e.Channel.SendMessage(Strings.err_generic + ": " + ex.Message);
                     }
                 });
         }

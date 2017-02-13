@@ -5,6 +5,7 @@ using System.Reflection;
 using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using DuckBot.Resources;
 using Discord;
 using NLua;
 
@@ -65,7 +66,9 @@ namespace DuckBot
             {
                 if (args.Length >= 1)
                 {
-                    Command c = Program.Inst.GetCommand(msg.server, args[0]);
+                    Session s = Program.Inst.CreateSession(msg.server);
+                    Command c;
+                    lock (s) c = s.Cmds.ContainsKey(args[0]) ? s.Cmds[args[0]] : null;
                     if (c != null) return c.Run(new CmdParams(msg, args.Length >= 2 ? args[1] : ""));
                 }
                 return "ERROR";
@@ -236,10 +239,12 @@ namespace DuckBot
 
         public string Run(CmdParams msg)
         {
-            if (Type == CmdType.Text) return CmdEngine(Content, msg);
+            string content;
+            lock (this) content = Content;
+            if (Type == CmdType.Text) return CmdEngine(content, msg);
             else if (Type == CmdType.Switch)
             {
-                string[] cases = EscSplit(Content, '|');
+                string[] cases = EscSplit(content, '|');
                 cases[0] = CmdEngine(cases[0].Trim(), msg);
                 for (int i = 1; i < cases.Length; ++i)
                 {
@@ -255,13 +260,13 @@ namespace DuckBot
                             return CmdEngine(data, msg);
                     }
                 }
-                return "Switch didn't return anything.";
+                return "Switch " + Strings.ret_empty;
             }
             else if (Type == CmdType.Lua)
             {
                 using (Lua lua = new Lua())
                 {
-                    LuaPrintProxy proxy = new LuaPrintProxy();
+                    PrintProxy proxy = new PrintProxy();
                     lua.RegisterFunction("print", proxy, proxy.GetType().GetMethod("Print", new Type[] { typeof(object[]) }));
                     string code;
                     using (StreamReader sr = new StreamReader(GetType().Assembly.GetManifestResourceStream("DuckBot.Resources.Sandbox.lua")))
@@ -269,20 +274,20 @@ namespace DuckBot
                     try
                     {
                         const string template = "args = {...};rawText,sender,server,channel=args[1],args[2],args[3],args[4]\n";
-                        string source = template + Content;
+                        string source = template + content;
                         using (LuaFunction func = (LuaFunction)lua.DoString(code, "sandbox")[0])
                         {
                             object[] res = func.Call(source, msg.args, msg.sender, msg.server, msg.channel);
-                            return proxy.Length == 0 ? "Script didn't return anything." : proxy.Contents;
+                            return proxy.Length == 0 ? Strings.ret_empty_script : proxy.Contents;
                         }
                     }
-                    catch (NLua.Exceptions.LuaScriptException ex) { return "An error has occured: " + ex.Message + "\n``` " + ex.Source + " ```"; }
+                    catch (NLua.Exceptions.LuaScriptException ex) { return Strings.err_generic + ": " + ex.Message + "\n``` " + ex.Source + " ```"; }
                 }
             }
             else if (Type == CmdType.CSharp)
             {
                 const string template = "using System;using System.Collections.Generic;using Discord.Net;using Discord;using Discord.Commands;namespace DuckCommand {public class Command {public static string Main(string rawText,User sender,Server server,Channel channel){\n";
-                string source = template + Content + "}}}";
+                string source = template + content + "}}}";
                 using (CodeDomProvider compiler = CodeDomProvider.CreateProvider("CSharp"))
                 {
                     CompilerParameters pars = new CompilerParameters();
@@ -299,7 +304,7 @@ namespace DuckBot
                     }
                     else
                     {
-                        StringBuilder errors = new StringBuilder("Compilation error: ");
+                        StringBuilder errors = new StringBuilder(Strings.err_compile + ": ");
                         errors.AppendFormat("{0},{1}: ``` {2} ```", results.Errors[0].Line - 1, results.Errors[0].Column, results.Errors[0].ErrorText);
                         return errors.ToString();
                     }
@@ -308,8 +313,10 @@ namespace DuckBot
             else throw new ArgumentOutOfRangeException("Type");
         }
 
-        private class LuaPrintProxy
+        private class PrintProxy : TextWriter
         {
+            public override Encoding Encoding { get { return Encoding.UTF8; } }
+
             private StringBuilder buffer = new StringBuilder();
 
             public void Print(params object[] args)
