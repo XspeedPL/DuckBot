@@ -1,6 +1,7 @@
 # DuckBot
-A Discord bot with it's own functional-style scripting language (yet to be named).  
-With DuckBot users are able to define their own commands using the scripting language mentioned above, Lua or C#.  
+![DuckBot Logo](http://i66.tinypic.com/33yhvnr.png)  
+DuckBot is a Discord bot with it's own functional-style scripting language (yet to be named).  
+With DuckBot users are able to define their own commands using the scripting language mentioned above, Lua or C\# for all possible needs and purposes.  
 
 ## Scripting syntax
 Text contained within a script is outputted exactly as it is, with the exception of a few special characters.  
