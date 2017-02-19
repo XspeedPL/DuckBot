@@ -12,6 +12,7 @@ namespace DuckBot
     {
         public static readonly Random Rand = new Random();
         internal static Program Inst = null;
+        internal static TextWriter StdOut;
 
         private readonly Dictionary<string, HardCmd> hardCmds;
         private readonly DiscordClient client;
@@ -23,6 +24,7 @@ namespace DuckBot
         static void Main(string[] args)
         {
             Console.Title = "DuckBot";
+            StdOut = Console.Out;
             if (!DuckData.LogFile.Exists) File.WriteAllText(DuckData.LogFile.FullName, "");
             if (!DuckData.TokenFile.Exists) Log(LogSeverity.Error, Strings.start_err_notoken);
             else
@@ -230,7 +232,7 @@ namespace DuckBot
             text = "[" + DateTime.UtcNow.ToShortTimeString() + "] [" + severity + "] " + text;
             using (StreamWriter sw = DuckData.LogFile.AppendText())
                 sw.WriteLine(text);
-            Console.WriteLine(text);
+            StdOut.WriteLine(text);
         }
 
         public static User FindUser(Server srv, string user)

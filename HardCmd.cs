@@ -61,7 +61,8 @@ namespace DuckBot
                 if (s.ShowChanges) lock (s) toSend = string.Format(Strings.ret_changes, oldContent, s.Cmds[cmd].AsCodeBlock());
                 else toSend = Strings.ret_success;
                 await msg.channel.SendMessage(toSend);
-            }, string.Format("<{0}> <{1}> <{2}>", Strings.lab_type, Strings.lab_name, Strings.lab_content) + "`\n" + Strings.lab_type.StartCase() + ": `csharp, lua, switch, text", true));
+            }, string.Format("<{0}> <{1}> <{2}>", Strings.lab_type, Strings.lab_name, Strings.lab_content) + "`\n" + Strings.lab_type.StartCase() + ": `csharp, lua, switch, text", false));
+            // TODO: Restore admin requirement?
 
             dict.Add("remove", new HardCmd(1, 2, async (args, msg, s) =>
             {

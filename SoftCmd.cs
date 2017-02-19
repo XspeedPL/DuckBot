@@ -1,13 +1,8 @@
 ﻿using System;
 using System.IO;
-using System.Text;
-using System.Reflection;
-using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using DuckBot.Resources;
-using Discord;
-using NLua;
 
 namespace DuckBot
 {
@@ -141,76 +136,9 @@ namespace DuckBot
                 }
                 return "Switch " + Strings.ret_empty;
             }
-            else if (Type == CmdType.Lua)
-            {
-                using (Lua lua = new Lua())
-                {
-                    PrintProxy proxy = new PrintProxy();
-                    lua.RegisterFunction("print", proxy, proxy.GetType().GetMethod("Print", new Type[] { typeof(object[]) }));
-                    string code;
-                    using (StreamReader sr = new StreamReader(GetType().Assembly.GetManifestResourceStream("DuckBot.Resources.Sandbox.lua")))
-                        code = sr.ReadToEnd();
-                    try
-                    {
-                        const string template = "args = {...};rawText,sender,server,channel=args[1],args[2],args[3],args[4]\n";
-                        string source = template + content;
-                        using (LuaFunction func = (LuaFunction)lua.DoString(code, "sandbox")[0])
-                        {
-                            object[] res = func.Call(source, msg.args, msg.sender, msg.server, msg.channel);
-                            return proxy.Length == 0 ? Strings.ret_empty_script : proxy.Contents;
-                        }
-                    }
-                    catch (NLua.Exceptions.LuaScriptException ex) { return Strings.err_generic + ": " + ex.Message + "\n``` " + ex.Source + " ```"; }
-                }
-            }
-            else if (Type == CmdType.CSharp)
-            {
-                const string template = "using System;using System.Collections.Generic;using Discord.Net;using Discord;using Discord.Commands;namespace DuckCommand {public class Command {public static string Main(string rawText,User sender,Server server,Channel channel){\n";
-                string source = template + content + "}}}";
-                using (CodeDomProvider compiler = CodeDomProvider.CreateProvider("CSharp"))
-                {
-                    CompilerParameters pars = new CompilerParameters();
-                    pars.ReferencedAssemblies.Add("System.dll");
-                    pars.ReferencedAssemblies.Add("Discord.Net.dll");
-                    pars.ReferencedAssemblies.Add("Discord.Net.Commands.dll");
-                    pars.GenerateExecutable = false;
-                    pars.GenerateInMemory = true;
-                    CompilerResults results = compiler.CompileAssemblyFromSource(pars, source);
-                    if (!results.Errors.HasErrors)
-                    {
-                        MethodInfo method = results.CompiledAssembly.GetType("DuckCommand.Command").GetMethod("Main");
-                        return method.Invoke(null, new object[] { msg.args, msg.sender, msg.server, msg.channel }).ToString();
-                    }
-                    else
-                    {
-                        StringBuilder errors = new StringBuilder(Strings.err_compile + ": ");
-                        errors.AppendFormat("{0},{1}: ``` {2} ```", results.Errors[0].Line - 1, results.Errors[0].Column, results.Errors[0].ErrorText);
-                        return errors.ToString();
-                    }
-                }
-            }
+            else if (Type == CmdType.Lua) return Sandbox.Lua.Execute(content, msg);
+            else if (Type == CmdType.CSharp) return Sandbox.CS.Execute(content, msg);
             else throw new ArgumentOutOfRangeException("Type");
-        }
-
-        private class PrintProxy : TextWriter
-        {
-            public override Encoding Encoding { get { return Encoding.UTF8; } }
-
-            private StringBuilder buffer = new StringBuilder();
-
-            public void Print(params object[] args)
-            {
-                if (args.Length > 0)
-                {
-                    buffer.Append(args[0].ToString());
-                    for (int i = 1; i < args.Length; ++i) buffer.Append("    " + args[i].ToString());
-                }
-                buffer.AppendLine();
-            }
-
-            public int Length { get { return buffer.Length; } }
-
-            public string Contents { get { return buffer.ToString().TrimEnd('\n', '\r'); } }
         }
     }
 }

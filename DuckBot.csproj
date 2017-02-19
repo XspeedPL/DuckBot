@@ -38,6 +38,13 @@
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>false</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>
+    </AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Discord.Net, Version=0.9.6.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>packages\Discord.Net.0.9.6\lib\net45\Discord.Net.dll</HintPath>
@@ -95,6 +102,9 @@
   <ItemGroup>
     <Compile Include="FuncVars.cs" />
     <Compile Include="HardCmd.cs" />
+    <Compile Include="Sandbox\CS.cs" />
+    <Compile Include="Sandbox\Lua.cs" />
+    <Compile Include="Sandbox\Wraps.cs" />
     <Compile Include="SoftCmd.cs" />
     <Compile Include="DuckData.cs" />
     <Compile Include="Inbox.cs" />
