@@ -10,7 +10,7 @@ namespace DuckBot
     {
         private static readonly Regex CmdPattern = new Regex(@"(?<!\^){([^{}:,|^\\ ]+?)(:(?>{(?<n>)|}(?<-n>)|[^{}]+)*(?(n)(?!)))?}");
 
-        private static char[] SpecialChars = { '{', ',', '|' };
+        private static readonly char[] SpecialChars = { '{', ',', '|' };
 
         public enum CmdType
         {
@@ -89,11 +89,22 @@ namespace DuckBot
             return ret.ToArray();
         }
 
+        public static string Escape(string s)
+        {
+            foreach (char c in SpecialChars) s = s.Replace(c.ToString(), "^" + c);
+            return s;
+        }
+
+        public static string Unescape(string s)
+        {
+            foreach (char c in SpecialChars) s = s.Replace("^" + c, c.ToString());
+            return s;
+        }
+
         public static string CmdEngine(string content, CmdParams msg)
         {
             string ret = CmdEngine(content, msg, 0);
-            foreach (char c in SpecialChars) ret = ret.Replace("^" + c, c.ToString());
-            return ret;
+            return Unescape(ret);
         }
 
         private static string CmdEngine(string content, CmdParams msg, int depth)

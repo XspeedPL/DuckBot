@@ -25,10 +25,10 @@ namespace DuckBot
                     try
                     {
                         int ix = int.Parse(args[0]);
-                        return msg.args.Split(' ')[ix];
+                        return SoftCmd.Escape(msg.args.Split(' ')[ix]);
                     }
                     catch { return "ERROR"; }
-                return msg.args;
+                return SoftCmd.Escape(msg.args);
             });
             vars.Add("mention", (args, msg) =>
             {
@@ -117,8 +117,8 @@ namespace DuckBot
             });
             vars.Add("eval", (args, msg) =>
             {
-                string arg = string.Join(",", args);
-                return SoftCmd.CmdEngine(arg.Replace("^{", "{"), msg);
+                string func = SoftCmd.Unescape(string.Join(",", args));
+                return SoftCmd.CmdEngine(func, msg);
             });
             vars.Add("find", (args, msg) =>
             {
