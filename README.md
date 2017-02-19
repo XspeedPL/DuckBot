@@ -1,9 +1,22 @@
 # DuckBot
 ![DuckBot Logo](http://i66.tinypic.com/33yhvnr.png)  
-DuckBot is a Discord bot with it's own functional-style scripting language (yet to be named).  
+DuckBot is a Discord bot with it's own functional-style scripting language, DuckScript.  
 With DuckBot users are able to define their own commands using the scripting language mentioned above, Lua or C\# for all possible needs and purposes.  
 
-## Scripting syntax
+## Getting started
+To display a list of all available commands use the `help` command.  
+Consecutively, all commands have a simple help section, which can be displayed using `help <command>`, where `command` is the command name you want to check out.  
+
+### Default commands list
+For more information about command usage use the help section command described above.
+* `add` - Defines a new user-made command
+* `remove` - Removes an user-made command
+* `help` - Displays a list of all available commands
+* `inform` - Sends the specified user a message, which will be delivered once the user comes back online
+* `showchanges` - Switches the option to display old command contents upon change
+* `variable` - Used to manage script-defined variables
+
+## Command scripting syntax
 Text contained within a script is outputted exactly as it is, with the exception of a few special characters.  
 Those characters are: `{`, `,` and `|`. The first two are used to execute functions.  
 The last is used to construct a Switch-type command. More on that later.  
