@@ -97,6 +97,15 @@ namespace DuckBot.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Language with specified code isn&apos;t available..
+        /// </summary>
+        internal static string err_nolanguage {
+            get {
+                return ResourceManager.GetString("err_nolanguage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unknown subcommand specified..
         /// </summary>
         internal static string err_nosubcmd {
@@ -129,6 +138,15 @@ namespace DuckBot.Resources {
         internal static string err_permissions {
             get {
                 return ResourceManager.GetString("err_permissions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Script execution timed out!.
+        /// </summary>
+        internal static string err_scrtimeout {
+            get {
+                return ResourceManager.GetString("err_scrtimeout", resourceCulture);
             }
         }
         
@@ -174,6 +192,15 @@ namespace DuckBot.Resources {
         internal static string lab_content {
             get {
                 return ResourceManager.GetString("lab_content", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to languageCode.
+        /// </summary>
+        internal static string lab_language {
+            get {
+                return ResourceManager.GetString("lab_language", resourceCulture);
             }
         }
         

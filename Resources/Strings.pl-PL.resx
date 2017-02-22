@@ -118,132 +118,132 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="err_badcode" xml:space="preserve">
-    <value>Unpermitted keywords have been found in the code.</value>
+    <value>Niedozwolone słowa kluczowe zostały znalezione w kodzie.</value>
   </data>
   <data name="err_compile" xml:space="preserve">
-    <value>Compilation error</value>
+    <value>Błąd kompilacji</value>
   </data>
   <data name="err_generic" xml:space="preserve">
-    <value>An error has occured</value>
+    <value>Wystąpił błąd</value>
   </data>
   <data name="err_nogeneric" xml:space="preserve">
-    <value>No {0} with specified name exists.</value>
+    <value>Nie istnieje {0} o podanej nazwie.</value>
   </data>
   <data name="err_nolanguage" xml:space="preserve">
-    <value>Language with specified code isn't available.</value>
+    <value>Język z podanym kodem nie jest dostępny.</value>
   </data>
   <data name="err_nosubcmd" xml:space="preserve">
-    <value>Unknown subcommand specified.</value>
+    <value>Podano nieznaną podkomendę.</value>
   </data>
   <data name="err_notadmin" xml:space="preserve">
-    <value>Only human server administrators can use this command!</value>
+    <value>Tylko ludzcy administratorzy serwera mogą używać tej komendy!</value>
   </data>
   <data name="err_params" xml:space="preserve">
-    <value>Insufficient amount of parameters specified.</value>
+    <value>Podano niewystarczającą liczbę parametrów.</value>
   </data>
   <data name="err_permissions" xml:space="preserve">
-    <value>You don't have sufficent permissons.</value>
+    <value>Nie posiadasz wystarczających uprawnień!</value>
   </data>
   <data name="err_scrtimeout" xml:space="preserve">
-    <value>Script execution timed out!</value>
+    <value>Przekroczono limit czasu wykonywania skryptu!</value>
   </data>
   <data name="exit_end" xml:space="preserve">
-    <value>Exiting gracefully</value>
+    <value>Czyste wyjście</value>
   </data>
   <data name="exit_start" xml:space="preserve">
-    <value>Shutting down DuckBot...</value>
+    <value>Zamykanie DuckBota...</value>
   </data>
   <data name="lab_action" xml:space="preserve">
-    <value>action</value>
+    <value>akcja</value>
   </data>
   <data name="lab_cmd" xml:space="preserve">
-    <value>command</value>
+    <value>komenda</value>
   </data>
   <data name="lab_content" xml:space="preserve">
-    <value>content</value>
+    <value>zawartość</value>
   </data>
   <data name="lab_language" xml:space="preserve">
-    <value>languageCode</value>
+    <value>kodJęzyka</value>
   </data>
   <data name="lab_literal" xml:space="preserve">
-    <value>Literal string</value>
+    <value>Dokładny ciąg</value>
   </data>
   <data name="lab_message" xml:space="preserve">
-    <value>message</value>
+    <value>wiadomość</value>
   </data>
   <data name="lab_name" xml:space="preserve">
-    <value>name</value>
+    <value>nazwa</value>
   </data>
   <data name="lab_optional" xml:space="preserve">
-    <value>Optional</value>
+    <value>Opcjonalne</value>
   </data>
   <data name="lab_required" xml:space="preserve">
-    <value>Required</value>
+    <value>Wymagane</value>
   </data>
   <data name="lab_type" xml:space="preserve">
-    <value>type</value>
+    <value>typ</value>
   </data>
   <data name="lab_user" xml:space="preserve">
-    <value>user</value>
+    <value>użytkownik</value>
   </data>
   <data name="lab_usercmd" xml:space="preserve">
-    <value>user-made command</value>
+    <value>komenda użytkownika</value>
   </data>
   <data name="lab_var" xml:space="preserve">
-    <value>variable</value>
+    <value>zmienna</value>
   </data>
   <data name="ret_changes" xml:space="preserve">
-    <value>Changed from: {0}
-To: {1}</value>
+    <value>Zmieniono z: {0}
+Na: {1}</value>
   </data>
   <data name="ret_cmdhelp" xml:space="preserve">
-    <value>Usage: `{0} {1}`
-Notation: `{2}`</value>
+    <value>Użycie: `{0} {1}`
+Notacja: `{2}`</value>
   </data>
   <data name="ret_cmdinfo" xml:space="preserve">
-    <value>Command name: `{0}`
-Created: `{1}` by `{2}`</value>
+    <value>Nazwa komendy: `{0}`
+Utworzona: `{1}` przez `{2}`</value>
   </data>
   <data name="ret_delivery" xml:space="preserve">
-    <value>Okay, I'll deliver the message when {0} goes online</value>
+    <value>OK, doręczę wiadomość gdy {0} pojawi się</value>
   </data>
   <data name="ret_empty" xml:space="preserve">
-    <value>didn't return anything.</value>
+    <value>nic nie zwrócił.</value>
   </data>
   <data name="ret_empty_cmd" xml:space="preserve">
-    <value>Command didn't return anything.</value>
+    <value>Komenda nic nie zwróciła.</value>
   </data>
   <data name="ret_empty_script" xml:space="preserve">
-    <value>Script didn't return anything.</value>
+    <value>Skrypt nic nie zwrócił.</value>
   </data>
   <data name="ret_removed" xml:space="preserve">
-    <value>Removed {0} `{1}`.</value>
+    <value>Usunięto: {0} `{1}`.</value>
   </data>
   <data name="ret_success" xml:space="preserve">
-    <value>Operation completed.</value>
+    <value>Operacja ukończona.</value>
   </data>
   <data name="start_err_badtoken" xml:space="preserve">
-    <value>Token file has wrong format!</value>
+    <value>Plik tokena ma nieprawidłowy format!</value>
   </data>
   <data name="start_err_fileload" xml:space="preserve">
-    <value>Couldn't load file '{0}'!</value>
+    <value>Błąd wczytywania pliku '{0}'!</value>
   </data>
   <data name="start_err_notoken" xml:space="preserve">
-    <value>Token file hasn't been found!</value>
+    <value>Plik tokena nie został znaleziony!</value>
   </data>
   <data name="start_info" xml:space="preserve">
-    <value>Starting {0}, press 'Q' to quit!</value>
+    <value>Startuje {0}, naciśnij 'Q' aby zakończyć!</value>
   </data>
   <data name="title_fullinbox" xml:space="preserve">
-    <value>This message was removed from the inbox:</value>
+    <value>Ta wiadomość została usunięta ze skrzynki:</value>
   </data>
   <data name="title_hardcmdlist" xml:space="preserve">
-    <value>Built-in commands list:</value>
+    <value>Lista wbudowanych komend:</value>
   </data>
   <data name="title_usercmdlist" xml:space="preserve">
-    <value>User-made commands list:</value>
+    <value>Lista komend użytkownika:</value>
   </data>
   <data name="title_varlist" xml:space="preserve">
-    <value>Variable list:</value>
+    <value>Lista zmiennych:</value>
   </data>
 </root>

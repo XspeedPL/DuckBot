@@ -3,6 +3,8 @@ using System.IO;
 using System.Text;
 using System.Security;
 using System.Reflection;
+using System.Globalization;
+using System.Threading.Tasks;
 using System.CodeDom.Compiler;
 using System.Security.Permissions;
 using DuckBot.Resources;
@@ -15,7 +17,7 @@ namespace DuckBot.Sandbox
 
         private static string Compile(string content)
         {
-            const string template = "using System;using System.Net;using System.Collections.Generic;using DuckBot.Sandbox;namespace DuckBot {public static class Script {public static string Main(string rawText,User sender,Server server,Channel channel){\n";
+            const string template = "using System;using System.Net;using System.Collections.Generic;using DuckBot.Sandbox;namespace DuckBot {public static class Script {public static string Code(string rawText,User sender,Server server,Channel channel){\n";
             string source = template + content + "}}}";
             using (CodeDomProvider compiler = CodeDomProvider.CreateProvider("CSharp"))
             {
@@ -24,6 +26,7 @@ namespace DuckBot.Sandbox
                 pars.ReferencedAssemblies.Add("Discord.Net.dll");
                 pars.ReferencedAssemblies.Add(typeof(Program).Assembly.Location);
                 pars.GenerateExecutable = false;
+                pars.GenerateInMemory = false;
                 pars.OutputAssembly = Guid.NewGuid() + ".dll";
                 CompilerResults results = compiler.CompileAssemblyFromSource(pars, source);
                 if (!results.Errors.HasErrors) return Path.GetFullPath(pars.OutputAssembly);
@@ -45,7 +48,7 @@ namespace DuckBot.Sandbox
             setup.DisallowPublisherPolicy = true;
             PermissionSet ps = new PermissionSet(PermissionState.None);
             ps.AddPermission(new FileIOPermission(FileIOPermissionAccess.Read | FileIOPermissionAccess.PathDiscovery, setup.ApplicationBase));
-            ps.AddPermission(new SecurityPermission(SecurityPermissionFlag.Execution));
+            ps.AddPermission(new SecurityPermission(SecurityPermissionFlag.Execution | SecurityPermissionFlag.UnmanagedCode));
             ps.AddPermission(new System.Net.WebPermission(PermissionState.Unrestricted));
             AppDomain app = null;
             string dll = null;
@@ -56,9 +59,7 @@ namespace DuckBot.Sandbox
                 CS obj = (CS)app.CreateInstanceAndUnwrap(typeof(CS).Assembly.FullName, typeof(CS).FullName);
                 using (StringWriter sw = new StringWriter())
                 {
-                    Console.SetOut(sw);
-                    sw.WriteLine(obj.Remote(dll, msg.args, msg.sender, msg.server, msg.channel));
-                    Console.SetOut(Program.StdOut);
+                    sw.WriteLine(obj.Remote(CultureInfo.CurrentCulture, sw, dll, msg.args, msg.sender, msg.server, msg.channel));
                     string res = sw.ToString().Trim();
                     return res.Length == 0 ? Strings.ret_empty_script : res;
                 }
@@ -71,11 +72,15 @@ namespace DuckBot.Sandbox
             }
         }
 
-        private string Remote(string assembly, string args, User sender, Server server, Channel channel)
+        private string Remote(CultureInfo ci, StringWriter sw, string assembly, string args, User sender, Server server, Channel channel)
         {
+            CultureInfo.DefaultThreadCurrentCulture = ci;
+            CultureInfo.DefaultThreadCurrentUICulture = ci;
+            Console.SetOut(sw);
             Assembly script = Assembly.LoadFile(assembly);
-            MethodInfo method = script.GetType("DuckBot.Script").GetMethod("Main");
-            return (string)method.Invoke(null, new object[] { args, sender, server, channel });
+            MethodInfo method = script.GetType("DuckBot.Script").GetMethod("Code");
+            Task<string> task = Task.Run(() => (string)method.Invoke(null, new object[] { args, sender, server, channel }));
+            return task.Wait(90000) ? task.Result : Strings.err_scrtimeout;
         }
     }
 }

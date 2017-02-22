@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Threading;
+using System.Globalization;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using DuckBot.Resources;
@@ -183,7 +184,10 @@ namespace DuckBot
                     if (ix != -1) cmd = cmd.Remove(ix);
                     cmd = cmd.ToLowerInvariant();
                     Session s = CreateSession(e.Server);
-                    Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo(s.Language);
+                    Thread.CurrentThread.CurrentCulture = new CultureInfo(s.Language);
+                    Thread.CurrentThread.CurrentUICulture = CultureInfo.CurrentCulture;
+                    CultureInfo.DefaultThreadCurrentCulture = CultureInfo.CurrentCulture;
+                    CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.CurrentCulture;
                     try
                     {
                         if (hardCmds.ContainsKey(cmd))
@@ -197,7 +201,8 @@ namespace DuckBot
                                 if (args.Length >= hcmd.argsMin)
                                 {
                                     await e.Channel.SendIsTyping();
-                                    hcmd.func(args, new CmdParams(e), s);
+                                    string res = hcmd.func(args, new CmdParams(e), s);
+                                    await e.Channel.SendMessage(string.IsNullOrWhiteSpace(res) ? Strings.ret_empty_cmd : res);
                                 }
                                 else await e.Channel.SendMessage(Strings.err_params);
                             }
