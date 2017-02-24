@@ -13,8 +13,8 @@ For more information about command usage use the help section command described 
 * `remove` - Removes an user-made command
 * `help` - Displays a list of all available commands
 * `inform` - Sends the specified user a message, which will be delivered once the user comes back online
-* `showchanges` - Switches the option to display old command contents upon change
-* `variable` - Used to manage script-defined variables
+* `options` - Used to configure server session options
+* `var` - Used to manage script-defined variables
 
 ## Command scripting syntax
 Text contained within a script is outputted exactly as it is, with the exception of a few special characters.  
@@ -46,9 +46,9 @@ All functions have a specified minimum amount of arguments, if more than neccess
 * `{user}` - Returns the name of the user who sent the command
 
 ### Special functions:
+* `{get:var}` - Returns the contents of variable `var`
 * `{set:var,value}` - Sets a variable named `var` to `value` in the current server session, returns nothing
   * *Special note: variables with names prefixed by `_` are not persisted between bot runs!*
-* `{get:var}` - Returns the contents of variable `var`
 
 ## Switch construction
 Switches can help compacting a series of `{if}` functions and have a following syntax:  
@@ -69,14 +69,14 @@ Inside the environment it's possible to access a few parameters:
 * `server` - The current server object
 
 ## C\# scripts
-At the moment only users approved by a superuser (hardcoded as EchoNex) are able to define C# scripts due to unsandboxed access, which could allow malicious code to potentially harm the server.  
-Command contents are wrapped inside this template and executed:
+At the moment only users approved by a superuser (hardcoded as EchoNex) are able to create C# scripts due to experimental sandboxed environment, which could possibly allow malicious code to harm the server.  
+Command contents are wrapped inside the following template and executed:
 ```cs
 using System; using System.Collections.Generic;
-using Discord.Net; using Discord;
-namespace DuckCommand {
-    public class Command {
-        public static string Main(string rawText, User sender, Server server, Channel channel) {
+using System.Net; using DuckBot.Sandbox;
+namespace DuckBot {
+    public static class Script {
+        public static string Code(string rawText, User sender, Server server, Channel channel) {
             // Contents inserted here
 }   }   }
 ```  
