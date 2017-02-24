@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Resources;
+using Discord;
 
 namespace DuckBot
 {
@@ -15,7 +15,7 @@ namespace DuckBot
         {
             CultureInfo ci = null;
             try { ci = CultureInfo.GetCultureInfo(langCode); }
-            catch { return false; }
+            catch (CultureNotFoundException) { return false; }
             ResourceManager rm = null;
             try
             {
@@ -26,5 +26,7 @@ namespace DuckBot
             }
             finally { rm.ReleaseAllResources(); }
         }
+
+        public static bool UserActive(this User u) { return u.Status == UserStatus.Online || u.Status == UserStatus.DoNotDisturb; }
     }
 }

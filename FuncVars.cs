@@ -14,32 +14,32 @@ namespace DuckBot
 
         static FuncVars()
         {
-            vars.Add("user", (args, msg) => { return msg.sender.Name; });
-            vars.Add("nickOrUser", (args, msg) =>
+            Register("user", (args, msg) => { return msg.Sender.Name; });
+            Register("nickOrUser", (args, msg) =>
             {
-                return string.IsNullOrWhiteSpace(msg.sender.Nickname) ? msg.sender.Name : msg.sender.Nickname;
+                return string.IsNullOrWhiteSpace(msg.Sender.Nickname) ? msg.Sender.Name : msg.Sender.Nickname;
             });
-            vars.Add("input", (args, msg) =>
+            Register("input", (args, msg) =>
             {
                 if (args.Length >= 1)
                     try
                     {
                         int ix = int.Parse(args[0]);
-                        return SoftCmd.Escape(msg.args.Split(' ')[ix]);
+                        return SoftCmd.Escape(msg.Args.Split(' ')[ix]);
                     }
                     catch { return "ERROR"; }
-                return SoftCmd.Escape(msg.args);
+                return SoftCmd.Escape(msg.Args);
             });
-            vars.Add("mention", (args, msg) =>
+            Register("mention", (args, msg) =>
             {
                 if (args.Length >= 1)
                 {
-                    Discord.User u = Program.FindUser(msg.server, args[0]);
+                    Discord.User u = Program.FindUser(msg.Server, args[0]);
                     return u == null ? "ERROR" : u.Mention;
                 }
-                else return msg.sender.Mention;
+                else return msg.Sender.Mention;
             });
-            vars.Add("rand", (args, msg) =>
+            Register("rand", (args, msg) =>
             {
                 try
                 {
@@ -50,28 +50,28 @@ namespace DuckBot
                 }
                 catch { return "ERROR"; }
             });
-            vars.Add("command", (args, msg) =>
+            Register("command", (args, msg) =>
             {
                 if (args.Length >= 1)
                 {
-                    Session s = Program.Inst.CreateSession(msg.server);
+                    Session s = Program.Inst.CreateSession(msg.Server);
                     SoftCmd c;
                     lock (s) c = s.Cmds.ContainsKey(args[0]) ? s.Cmds[args[0]] : null;
                     if (c != null) return c.Run(new CmdParams(msg, args.Length >= 2 ? args[1] : ""));
                 }
                 return "ERROR";
             });
-            vars.Add("if", (args, msg) =>
+            Register("if", (args, msg) =>
             {
                 if (args.Length >= 3)
                     return args[0].Length == args[1].Length ? args[2] : args[3];
                 else return "ERROR";
             });
-            vars.Add("length", (args, msg) =>
+            Register("length", (args, msg) =>
             {
                 return args.Length >= 1 ? args[0].Length.ToString() : "ERROR";
             });
-            vars.Add("substr", (args, msg) =>
+            Register("substr", (args, msg) =>
             {
                 try
                 {
@@ -86,27 +86,27 @@ namespace DuckBot
                 }
                 catch { return "ERROR"; }
             });
-            vars.Add("date", (args, msg) =>
+            Register("date", (args, msg) =>
             {
                 if (args.Length >= 1) return DateTime.UtcNow.ToString(args[0]);
                 else return DateTime.UtcNow.ToShortDateString();
             });
-            vars.Add("time", (args, msg) =>
+            Register("time", (args, msg) =>
             {
                 if (args.Length >= 1 && args[0] == "long") return DateTime.UtcNow.ToLongTimeString();
                 else return DateTime.UtcNow.ToShortTimeString();
             });
-            vars.Add("get", (args, msg) =>
+            Register("get", (args, msg) =>
             {
-                Session s = Program.Inst.CreateSession(msg.server);
+                Session s = Program.Inst.CreateSession(msg.Server);
                 lock (s)
                     return args.Length >= 1 && s.Vars.ContainsKey(args[0]) ? s.Vars[args[0]] : "ERROR";
             });
-            vars.Add("set", (args, msg) =>
+            Register("set", (args, msg) =>
             {
                 if (args.Length >= 2)
                 {
-                    Session s = Program.Inst.CreateSession(msg.server);
+                    Session s = Program.Inst.CreateSession(msg.Server);
                     lock (s)
                         if (s.Vars.ContainsKey(args[0])) s.Vars[args[0]] = args[1];
                         else s.Vars.Add(args[0], args[1]);
@@ -115,18 +115,18 @@ namespace DuckBot
                 }
                 else return "ERROR";
             });
-            vars.Add("eval", (args, msg) =>
+            Register("eval", (args, msg) =>
             {
                 string func = SoftCmd.Unescape(string.Join(",", args));
                 return SoftCmd.CmdEngine(func, msg);
             });
-            vars.Add("find", (args, msg) =>
+            Register("find", (args, msg) =>
             {
                 return args.Length >= 2 ? args[0].IndexOf(args[1]).ToString() : "ERROR";
             });
         }
 
-        public static bool Has(string name)
+        public static bool Exists(string name)
         {
             return vars.ContainsKey(name);
         }
@@ -136,9 +136,10 @@ namespace DuckBot
             return vars[name](args, msg);
         }
 
-        public static void Add(string name, CmdAct action)
+        public static bool Register(string name, CmdAct action)
         {
-            if (!Has(name)) vars.Add(name, action);
+            if (Exists(name)) return false;
+            else { vars.Add(name, action); return true; }
         }
     }
 }

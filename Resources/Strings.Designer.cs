@@ -424,6 +424,15 @@ namespace DuckBot.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Messages from `{0}`:.
+        /// </summary>
+        internal static string title_inbox {
+            get {
+                return ResourceManager.GetString("title_inbox", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to User-made commands list:.
         /// </summary>
         internal static string title_usercmdlist {

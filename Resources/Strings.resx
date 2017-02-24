@@ -240,6 +240,9 @@ Created: `{1}` by `{2}`</value>
   <data name="title_hardcmdlist" xml:space="preserve">
     <value>Built-in commands list:</value>
   </data>
+  <data name="title_inbox" xml:space="preserve">
+    <value>Messages from `{0}`:</value>
+  </data>
   <data name="title_usercmdlist" xml:space="preserve">
     <value>User-made commands list:</value>
   </data>

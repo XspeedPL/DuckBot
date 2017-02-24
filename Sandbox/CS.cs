@@ -59,7 +59,7 @@ namespace DuckBot.Sandbox
                 CS obj = (CS)app.CreateInstanceAndUnwrap(typeof(CS).Assembly.FullName, typeof(CS).FullName);
                 using (StringWriter sw = new StringWriter())
                 {
-                    sw.WriteLine(obj.Remote(CultureInfo.CurrentCulture, sw, dll, msg.args, msg.sender, msg.server, msg.channel));
+                    sw.WriteLine(obj.Remote(CultureInfo.CurrentCulture, sw, dll, msg.Args, msg.Sender, msg.Server, msg.Channel));
                     string res = sw.ToString().Trim();
                     return res.Length == 0 ? Strings.ret_empty_script : res;
                 }

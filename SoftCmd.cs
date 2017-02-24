@@ -112,7 +112,7 @@ namespace DuckBot
             return depth > 10 || !content.Contains("{") ? content : CmdPattern.Replace(content, (match) =>
             {
                 string cmd = match.Groups[1].Value;
-                if (FuncVars.Has(cmd))
+                if (FuncVars.Exists(cmd))
                 {
                     string arg = match.Groups[2].Success ? match.Groups[2].Value.Substring(1) : null;
                     if (arg != null) arg = CmdEngine(arg, msg, depth + 1);
@@ -149,7 +149,7 @@ namespace DuckBot
             }
             else if (Type == CmdType.Lua) return Sandbox.Lua.Execute(content, msg);
             else if (Type == CmdType.CSharp) return Sandbox.CS.Execute(content, msg);
-            else throw new ArgumentOutOfRangeException("Type");
+            else throw new InvalidOperationException("Type");
         }
     }
 }

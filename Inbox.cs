@@ -56,7 +56,7 @@ namespace DuckBot
                 foreach (KeyValuePair<ulong, string[]> kvp in queue)
                 {
                     string sender = srv.GetUser(kvp.Key).Name;
-                    string msg = "Messages from `" + sender + "`:";
+                    string msg = string.Format(Resources.Strings.title_inbox, sender);
                     for (int i = 0; i < 5; ++i)
                     {
                         if (!string.IsNullOrWhiteSpace(kvp.Value[i]))

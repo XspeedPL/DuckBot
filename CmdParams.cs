@@ -4,26 +4,26 @@ namespace DuckBot
 {
     public struct CmdParams
     {
-        public readonly string args;
-        public readonly Server server;
-        public readonly Channel channel;
-        public readonly User sender;
+        public string Args { get; private set; }
+        public Server Server { get; private set; }
+        public Channel Channel { get; private set; }
+        public User Sender { get; private set; }
 
         public CmdParams(MessageEventArgs e)
         {
             int ix = e.Message.RawText.IndexOf(' ');
-            args = ix == -1 ? "" : e.Message.RawText.Substring(ix + 1);
-            server = e.Server;
-            channel = e.Channel;
-            sender = e.User;
+            Args = ix == -1 ? "" : e.Message.RawText.Substring(ix + 1);
+            Server = e.Server;
+            Channel = e.Channel;
+            Sender = e.User;
         }
 
         public CmdParams(CmdParams copy, string text)
         {
-            args = text;
-            server = copy.server;
-            channel = copy.channel;
-            sender = copy.sender;
+            Args = text;
+            Server = copy.Server;
+            Channel = copy.Channel;
+            Sender = copy.Sender;
         }
     }
 }

@@ -13,7 +13,6 @@ namespace DuckBot
     {
         public static readonly Random Rand = new Random();
         internal static Program Inst = null;
-        internal static TextWriter StdOut;
 
         private readonly Dictionary<string, HardCmd> hardCmds;
         private readonly DiscordClient client;
@@ -22,10 +21,9 @@ namespace DuckBot
         private readonly Task bgSaver;
         private readonly CancellationTokenSource bgCancel;
         
-        static void Main(string[] args)
+        static void Main()
         {
             Console.Title = "DuckBot";
-            StdOut = Console.Out;
             if (!DuckData.LogFile.Exists) File.WriteAllText(DuckData.LogFile.FullName, "");
             if (!DuckData.TokenFile.Exists) Log(LogSeverity.Error, Strings.start_err_notoken);
             else
@@ -102,7 +100,7 @@ namespace DuckBot
                             data.AdvancedUsers.Add(ulong.Parse(line));
                     }
                 }
-                catch (Exception ex) { Log(new Exception(string.Format(Strings.start_err_fileload, DuckData.WhitelistFile.Name), ex)); }
+                catch (Exception ex) { Log(new FileLoadException(string.Format(Strings.start_err_fileload, DuckData.WhitelistFile.Name), ex)); }
             foreach (FileInfo fi in DuckData.SessionsDir.EnumerateFiles("session_*.dat"))
                 try
                 {
@@ -112,7 +110,7 @@ namespace DuckBot
                         s.Load(br);
                     data.ServerSessions.Add(id, s);
                 }
-                catch (Exception ex) { Log(new Exception(string.Format(Strings.start_err_fileload, fi.Name), ex)); }
+                catch (Exception ex) { Log(new FileLoadException(string.Format(Strings.start_err_fileload, fi.Name), ex)); }
         }
 
         private void Start()
@@ -141,7 +139,7 @@ namespace DuckBot
                             sw.WriteLine(u.ToString());
                 }
             }
-            catch (Exception ex) { Log(ex); }
+            catch (IOException ex) { Log(ex); }
         }
 
         internal Session CreateSession(Server srv)
@@ -156,11 +154,9 @@ namespace DuckBot
                 else return data.ServerSessions[srv.Id];
         }
 
-        private static bool UserActive(User u) { return u.Status == UserStatus.Online || u.Status == UserStatus.DoNotDisturb; }
-
         private async void UserUpdated(object sender, UserUpdatedEventArgs e)
         {
-            if (!UserActive(e.Before) && UserActive(e.After))
+            if (!e.Before.UserActive() && e.After.UserActive())
             {
                 Session s = CreateSession(e.Server);
                 if (s.Msgs.ContainsKey(e.After.Id))
@@ -193,15 +189,15 @@ namespace DuckBot
                         if (hardCmds.ContainsKey(cmd))
                         {
                             HardCmd hcmd = hardCmds[cmd];
-                            if (hcmd.admin && (!e.User.ServerPermissions.Administrator || e.User.IsBot))
+                            if (hcmd.AdminOnly && (!e.User.ServerPermissions.Administrator || e.User.IsBot))
                                 await e.Channel.SendMessage(Strings.err_notadmin);
                             else
                             {
-                                string[] args = ix == -1 ? new string[0] : e.Message.RawText.Substring(ix + 2).Split(new char[] { ' ' }, hcmd.argsMax, StringSplitOptions.RemoveEmptyEntries);
-                                if (args.Length >= hcmd.argsMin)
+                                string[] args = ix == -1 ? new string[0] : e.Message.RawText.Substring(ix + 2).Split(new char[] { ' ' }, hcmd.ArgsMax, StringSplitOptions.RemoveEmptyEntries);
+                                if (args.Length >= hcmd.ArgsMin)
                                 {
                                     await e.Channel.SendIsTyping();
-                                    string res = hcmd.func(args, new CmdParams(e), s);
+                                    string res = hcmd.Func(args, new CmdParams(e), s);
                                     await e.Channel.SendMessage(string.IsNullOrWhiteSpace(res) ? Strings.ret_empty_cmd : res);
                                 }
                                 else await e.Channel.SendMessage(Strings.err_params);
@@ -237,7 +233,7 @@ namespace DuckBot
             text = "[" + DateTime.UtcNow.ToShortTimeString() + "] [" + severity + "] " + text;
             using (StreamWriter sw = DuckData.LogFile.AppendText())
                 sw.WriteLine(text);
-            StdOut.WriteLine(text);
+            Console.WriteLine(text);
         }
 
         public static User FindUser(Server srv, string user)

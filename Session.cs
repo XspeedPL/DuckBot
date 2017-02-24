@@ -8,10 +8,10 @@ namespace DuckBot
     {
         private static readonly int Version = -1;
 
-        public readonly ulong ServerID;
-        public readonly Dictionary<string, SoftCmd> Cmds;
-        public readonly Dictionary<string, string> Vars;
-        internal readonly Dictionary<ulong, Inbox> Msgs;
+        public ulong ServerID { get; private set; }
+        public Dictionary<string, SoftCmd> Cmds { get; private set; }
+        public Dictionary<string, string> Vars { get; private set; }
+        internal Dictionary<ulong, Inbox> Msgs { get; private set; }
 
         public bool ShowChanges { get; internal set; }
         public string Language { get; private set; }
@@ -56,7 +56,7 @@ namespace DuckBot
         public void Load(BinaryReader br)
         {
             int ver = br.ReadInt32();
-            int count = ver == Version ? br.ReadInt32() : ver;
+            int count = br.ReadInt32();
             lock (this)
             {
                 while (count-- > 0)
@@ -75,17 +75,14 @@ namespace DuckBot
                     Msgs.Add(user, inb);
                 }
                 ShowChanges = br.ReadBoolean();
-                if (ver == Version)
+                count = br.ReadInt32();
+                while (count-- > 0)
                 {
-                    count = br.ReadInt32();
-                    while (count-- > 0)
-                    {
-                        string name = br.ReadString();
-                        string value = br.ReadString();
-                        Vars.Add(name, value);
-                    }
-                    Language = br.ReadString();
+                    string name = br.ReadString();
+                    string value = br.ReadString();
+                    Vars.Add(name, value);
                 }
+                Language = br.ReadString();
             }
         }
 

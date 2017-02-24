@@ -9,14 +9,15 @@ namespace DuckBot
     {
         public delegate string CmdAct(string[] args, CmdParams msg, Session s);
 
-        public readonly CmdAct func;
-        public readonly byte argsMin, argsMax;
-        public readonly bool admin;
-        public readonly string help;
+        public CmdAct Func { get; private set; }
+        public byte ArgsMin { get; private set; }
+        public byte ArgsMax { get; private set; }
+        public bool AdminOnly { get; private set; }
+        public string HelpText { get; private set; }
 
         public HardCmd(byte minArgs, byte maxArgs, CmdAct action, string helpText, bool reqAdmin = false)
         {
-            argsMin = minArgs; argsMax = maxArgs; func = action; help = helpText; admin = reqAdmin;
+            ArgsMin = minArgs; ArgsMax = maxArgs; Func = action; HelpText = helpText; AdminOnly = reqAdmin;
         }
 
         internal static Dictionary<string, HardCmd> CreateDefault()
@@ -27,16 +28,16 @@ namespace DuckBot
             {
                 if (args[0].ToLower() == "csharp")
                 {
-                    if (Program.Inst.IsAdvancedUser(msg.sender.Id))
+                    if (Program.Inst.IsAdvancedUser(msg.Sender.Id))
                     {
-                        if (msg.sender.Id != DuckData.SuperUserId && (args[2].Contains("Assembly") || args[2].Contains("System.IO") || args[2].Contains("Environment")))
+                        if (msg.Sender.Id != DuckData.SuperUserId && (args[2].Contains("Assembly") || args[2].Contains("System.IO") || args[2].Contains("Environment")))
                             return Strings.err_badcode;
                     }
                     else return Strings.err_permissions;
                 }
                 else if (args[0].ToLower() == "whitelist")
                 {
-                    if (msg.sender.Id == DuckData.SuperUserId)
+                    if (msg.Sender.Id == DuckData.SuperUserId)
                     {
                         Program.Inst.AddAdvancedUser(ulong.Parse(args[1]));
                         return Strings.ret_success;
@@ -44,7 +45,7 @@ namespace DuckBot
                     else return Strings.err_permissions;
                 }
                 string cmd = args[1].ToLowerInvariant(), oldContent = " ";
-                SoftCmd nc = new SoftCmd(args[0], args[2], msg.sender.Name);
+                SoftCmd nc = new SoftCmd(args[0], args[2], msg.Sender.Name);
                 lock (s)
                     if (s.Cmds.ContainsKey(cmd))
                     {
@@ -92,7 +93,7 @@ namespace DuckBot
                 }
                 else if (arg == "language")
                 {
-                    if (args.Length == 1)
+                    if (args.Length == 1 || string.IsNullOrWhiteSpace(args[1]))
                         return FormatHelp("options language", string.Format("<{0}>", Strings.lab_language));
                     else if (!s.SetLanguage(args[1])) return Strings.err_nolanguage;
                 }
@@ -103,13 +104,13 @@ namespace DuckBot
 
             dict.Add("inform", new HardCmd(2, 2, (args, msg, s) =>
             {
-                User u = Program.FindUser(msg.server, args[0]);
+                User u = Program.FindUser(msg.Server, args[0]);
                 if (u != null)
                 {
                     string message = args[1];
                     if (!message.StartsWith("`")) message = "`" + message + "`";
-                    message = "`[" + DateTime.UtcNow.ToShortDateString() + "]` " + msg.channel.Mention + ": " + message;
-                    string removed = s.AddMessage(msg.sender.Id, u.Id, message);
+                    message = "`[" + DateTime.UtcNow.ToShortDateString() + "]` " + msg.Channel.Mention + ": " + message;
+                    string removed = s.AddMessage(msg.Sender.Id, u.Id, message);
                     string ret = string.Format(Strings.ret_delivery, u.Name);
                     if (!string.IsNullOrWhiteSpace(removed))
                         ret += "\n" + Strings.title_fullinbox + "\n" + removed;
@@ -124,7 +125,7 @@ namespace DuckBot
                 if (args.Length > 0)
                 {
                     string cmd = args[0].ToLowerInvariant();
-                    if (dict.ContainsKey(cmd)) return FormatHelp(cmd, dict[cmd].help);
+                    if (dict.ContainsKey(cmd)) return FormatHelp(cmd, dict[cmd].HelpText);
                     else
                     {
                         bool check;
