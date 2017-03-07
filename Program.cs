@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using DuckBot.Resources;
 using Discord;
+using Discord.Audio;
 
 namespace DuckBot
 {
@@ -49,6 +50,11 @@ namespace DuckBot
                 x.LogLevel = LogSeverity.Info;
                 x.LogHandler = Log;
             });
+            client.UsingAudio(x =>
+            {
+                x.Mode = AudioMode.Outgoing;
+                x.Channels = 2;
+            });
             token = userToken;
             prefix = cmdPrefix;
             data = new DuckData();
@@ -56,7 +62,7 @@ namespace DuckBot
             bgCancel = new CancellationTokenSource();
             bgSaver = Task.Run(AsyncSaver);
         }
-
+        
         public async Task AsyncSaver()
         {
             while (!bgCancel.IsCancellationRequested)
@@ -66,7 +72,7 @@ namespace DuckBot
                     await Task.Delay(120000, bgCancel.Token);
                     lock (data.ServerSessions)
                         foreach (Session s in data.ServerSessions.Values)
-                            if (s.PendingSave) s.SaveAsync();
+                            if (s.PendingSave) Task.Run((Action)s.Save);
                 }
                 catch { }
             }
@@ -123,8 +129,7 @@ namespace DuckBot
 
         internal bool IsAdvancedUser(ulong id)
         {
-            lock (data.AdvancedUsers)
-                return data.AdvancedUsers.Contains(id);
+            lock (data.AdvancedUsers) return data.AdvancedUsers.Contains(id);
         }
 
         internal void AddAdvancedUser(ulong id)

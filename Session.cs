@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using Discord.Audio;
 
 namespace DuckBot
 {
@@ -12,6 +13,8 @@ namespace DuckBot
         public Dictionary<string, SoftCmd> Cmds { get; private set; }
         public Dictionary<string, string> Vars { get; private set; }
         internal Dictionary<ulong, Inbox> Msgs { get; private set; }
+
+        public Audio.AudioStreamer AudioPlayer { get; private set; }
 
         public bool ShowChanges { get; internal set; }
         public string Language { get; private set; }
@@ -86,11 +89,6 @@ namespace DuckBot
             }
         }
 
-        public void SaveAsync()
-        {
-            Task.Run((System.Action)Save);
-        }
-
         public void Save()
         {
             string file = Path.Combine(DuckData.SessionsDir.FullName, "session_" + ServerID + ".dat");
@@ -134,6 +132,24 @@ namespace DuckBot
                 }
                 else i = Msgs[recv];
             return i.AddMessage(sender, msg);
+        }
+
+        public async void JoinAudio(Discord.Channel c)
+        {
+            if (AudioPlayer != null) AudioPlayer.Dispose();
+            IAudioClient client = await c.JoinAudio();
+            AudioPlayer = new Audio.AudioStreamer(client);
+        }
+
+        public async void PlayAudio(string url)
+        {
+            if (AudioPlayer != null) AudioPlayer.Dispose();
+            using (System.Net.WebClient wc = new System.Net.WebClient())
+            {
+                Task download = Utils.RunAsync(AudioPlayer.ProcessStream, wc.OpenRead(url));
+                AudioPlayer.Play(2);
+                await download;
+            }
         }
     }
 }

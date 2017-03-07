@@ -156,6 +156,9 @@
   <data name="lab_action" xml:space="preserve">
     <value>action</value>
   </data>
+  <data name="lab_channel" xml:space="preserve">
+    <value>channel</value>
+  </data>
   <data name="lab_cmd" xml:space="preserve">
     <value>command</value>
   </data>

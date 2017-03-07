@@ -189,6 +189,29 @@ namespace DuckBot
                 else return Strings.err_nosubcmd;
             }, string.Format("<{0}> [{1}]", Strings.lab_action, Strings.lab_var) + "`\n" + Strings.lab_action.StartCase() + ": `list, remove", true));
 
+            dict.Add("joinvoice", new HardCmd(1, 1, (args, msg, s) =>
+            {
+                foreach (Channel c in msg.Server.FindChannels(args[0], ChannelType.Voice))
+                {
+                    s.JoinAudio(c);
+                    return Strings.ret_success;
+                }
+                return string.Format(Strings.err_nogeneric, Strings.lab_channel);
+            }, string.Format("<{0}>", Strings.lab_channel)));
+
+            dict.Add("playsong", new HardCmd(1, 1, (args, msg, s) =>
+            {
+                Audio.Song song;
+                string result = Audio.SoundCloudAPI.Search(args[0], out song);
+                if (song != null)
+                {
+                    msg.Channel.SendMessage(result);
+                    s.PlayAudio(song.URL + "?" + Audio.SoundCloudAPI.CLIENT_ID);
+                    return "Song " + song.Full + " finished.";
+                }
+                else return result;
+            }, "<song-name>"));
+
             return dict;
         }
 

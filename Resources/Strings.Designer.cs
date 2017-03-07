@@ -178,6 +178,15 @@ namespace DuckBot.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to channel.
+        /// </summary>
+        internal static string lab_channel {
+            get {
+                return ResourceManager.GetString("lab_channel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to command.
         /// </summary>
         internal static string lab_cmd {
