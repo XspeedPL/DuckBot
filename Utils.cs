@@ -35,7 +35,7 @@ namespace DuckBot
             finally { rm.ReleaseAllResources(); }
         }
 
-        public static bool UserActive(this User u) { return u.Status == UserStatus.Online || u.Status == UserStatus.DoNotDisturb; }
+        public static bool UserActive(this IUser u) { return u.Status == UserStatus.Online || u.Status == UserStatus.DoNotDisturb; }
 
         public static int Similarity(string a, string b)
         {

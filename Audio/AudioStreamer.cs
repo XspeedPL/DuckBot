@@ -50,7 +50,7 @@ namespace DuckBot.Audio
                     }
                     while (!end);
             }
-            //catch (Exception ex) { Program.Log(ex); }
+            catch (Exception ex) { Program.Log(ex); }
             finally
             {
                 if (decompressor != null) decompressor.Dispose();
@@ -69,21 +69,13 @@ namespace DuckBot.Audio
                 int blockSize = format.AverageBytesPerSecond / 50;
                 byte[] buffer = new byte[blockSize];
                 int byteCount;
-
-                while (!end && (byteCount = resampler.Read(buffer, 0, blockSize)) > 0)
-                {
-                    int i;
-                    if (byteCount < blockSize)
-                        for (i = byteCount; i < blockSize; ++i) buffer[i] = 0;
-                    i = 0;
-                SendAgain:
-                    try { AudioClient.Send(buffer, 0, blockSize); }
-                    catch (OperationCanceledException)
+                using (Stream output = AudioClient.CreatePCMStream(AudioApplication.Music, 1920))
+                    while (!end && (byteCount = resampler.Read(buffer, 0, blockSize)) > 0)
                     {
-                        Thread.Sleep(500);
-                        if (++i < 10) goto SendAgain;
+                        if (byteCount < blockSize)
+                            for (int i = byteCount; i < blockSize; ++i) buffer[i] = 0;
+                        output.Write(buffer, 0, buffer.Length);
                     }
-                }
             }
             await download;
             Dispose();

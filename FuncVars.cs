@@ -14,10 +14,10 @@ namespace DuckBot
 
         static FuncVars()
         {
-            Register("user", (args, msg) => { return msg.Sender.Name; });
+            Register("user", (args, msg) => { return msg.Sender.Username; });
             Register("nickOrUser", (args, msg) =>
             {
-                return string.IsNullOrWhiteSpace(msg.Sender.Nickname) ? msg.Sender.Name : msg.Sender.Nickname;
+                return string.IsNullOrWhiteSpace(msg.Sender.Nickname) ? msg.Sender.Username : msg.Sender.Nickname;
             });
             Register("input", (args, msg) =>
             {
@@ -34,7 +34,7 @@ namespace DuckBot
             {
                 if (args.Length >= 1)
                 {
-                    Discord.User u = Program.FindUser(msg.Server, args[0]);
+                    Discord.IUser u = Program.FindUser(msg.Server, args[0]);
                     return u == null ? "ERROR" : u.Mention;
                 }
                 else return msg.Sender.Mention;

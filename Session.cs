@@ -138,20 +138,21 @@ namespace DuckBot
             return i.AddMessage(sender, msg);
         }
 
-        public async void JoinAudio(Discord.Channel c)
+        public async Task JoinAudio(Discord.IVoiceChannel c)
         {
-            IAudioClient client = await c.JoinAudio();
+            IAudioClient client = await c.ConnectAsync();
             if (AudioPlayer != null) AudioPlayer.AudioClient = client;
             else AudioPlayer = new Audio.AudioStreamer(client);
         }
 
-        internal void AutoJoinAudio(Discord.Server srv)
+        internal async Task AutoJoinAudio(Discord.IGuild srv)
         {
-            foreach (Discord.Channel c in srv.FindChannels(MusicChannel, Discord.ChannelType.Voice))
-            {
-                JoinAudio(c);
-                break;
-            }
+            foreach (Discord.IVoiceChannel c in await srv.GetVoiceChannelsAsync())
+                if (c.Name == MusicChannel)
+                {
+                    await JoinAudio(c);
+                    break;
+                }
         }
 
         public void PlayAudio(string url)

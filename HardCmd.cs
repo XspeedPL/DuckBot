@@ -45,7 +45,7 @@ namespace DuckBot
                     else return Strings.err_permissions;
                 }
                 string cmd = args[1].ToLowerInvariant(), oldContent = " ";
-                SoftCmd nc = new SoftCmd(args[0], args[2], msg.Sender.Name);
+                SoftCmd nc = new SoftCmd(args[0], args[2], msg.Sender.Username);
                 lock (s)
                     if (s.Cmds.ContainsKey(cmd))
                     {
@@ -98,13 +98,14 @@ namespace DuckBot
                     else
                     {
                         bool found = false;
-                        foreach (Channel c in msg.Server.FindChannels(args[1], ChannelType.Voice))
-                        {
-                            s.JoinAudio(c);
-                            s.MusicChannel = args[1];
-                            found = true;
-                            break;
-                        }
+                        foreach (IVoiceChannel c in msg.Server.GetVoiceChannelsAsync().Result)
+                            if (c.Name == args[1])
+                            {
+                                s.JoinAudio(c).Wait();
+                                s.MusicChannel = args[1];
+                                found = true;
+                                break;
+                            }
                         if (!found) return string.Format(Strings.err_nogeneric, Strings.lab_channel);
                     }
                 }
@@ -121,14 +122,14 @@ namespace DuckBot
 
             dict.Add("inform", new HardCmd(2, 2, (args, msg, s) =>
             {
-                User u = Program.FindUser(msg.Server, args[0]);
+                IUser u = Program.FindUser(msg.Server, args[0]);
                 if (u != null)
                 {
                     string message = args[1];
                     if (!message.StartsWith("`")) message = "`" + message + "`";
                     message = "`[" + DateTime.UtcNow.ToShortDateString() + "]` " + msg.Channel.Mention + ": " + message;
                     string removed = s.AddMessage(msg.Sender.Id, u.Id, message);
-                    string ret = string.Format(Strings.ret_delivery, u.Name);
+                    string ret = string.Format(Strings.ret_delivery, u.Username);
                     if (!string.IsNullOrWhiteSpace(removed))
                         ret += "\n" + Strings.title_fullinbox + "\n" + removed;
                     s.SetPending();
@@ -212,7 +213,7 @@ namespace DuckBot
                 string result = Audio.SoundCloudAPI.Search(args[0], out song);
                 if (song != null)
                 {
-                    msg.Channel.SendMessage(result);
+                    msg.Channel.SendMessageAsync(result);
                     s.PlayAudio(song.URL + "?" + Audio.SoundCloudAPI.CLIENT_ID);
                     return "Song " + song.Full + " finished.";
                 }

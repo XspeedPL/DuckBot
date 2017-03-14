@@ -72,7 +72,7 @@ namespace DuckBot.Sandbox
             }
         }
 
-        private string Remote(CultureInfo ci, StringWriter sw, string assembly, string args, User sender, Server server, Channel channel)
+        private string Remote(CultureInfo ci, StringWriter sw, string assembly, string args, Discord.IUser sender, Discord.IGuild server, Discord.IChannel channel)
         {
             CultureInfo.DefaultThreadCurrentCulture = ci;
             CultureInfo.DefaultThreadCurrentUICulture = ci;

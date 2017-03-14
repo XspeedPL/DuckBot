@@ -50,19 +50,19 @@ namespace DuckBot
             }
         }
 
-        public void Deliver(Server srv, Channel recipent, bool remove = true)
+        public void Deliver(IGuild srv, IMessageChannel recipent, bool remove = true)
         {
             lock (this)
                 foreach (KeyValuePair<ulong, string[]> kvp in queue)
                 {
-                    string sender = srv.GetUser(kvp.Key).Name;
+                    string sender = srv.GetUserAsync(kvp.Key).Result.Username;
                     string msg = string.Format(Resources.Strings.title_inbox, sender);
                     for (int i = 0; i < 5; ++i)
                     {
                         if (!string.IsNullOrWhiteSpace(kvp.Value[i]))
                             msg += "\n - " + kvp.Value[i];
                     }
-                    recipent.SendMessage(msg);
+                    recipent.SendMessageAsync(msg);
                 }
             if (remove) queue.Clear();
         }

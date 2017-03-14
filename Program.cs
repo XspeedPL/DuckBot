@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using DuckBot.Resources;
 using Discord;
-using Discord.Audio;
 
 namespace DuckBot
 {
@@ -16,7 +15,7 @@ namespace DuckBot
         internal static Program Inst = null;
 
         private readonly Dictionary<string, HardCmd> hardCmds;
-        private readonly DiscordClient client;
+        private readonly Discord.WebSocket.DiscordSocketClient client;
         private readonly DuckData data;
         private readonly string token, prefix;
         private readonly Task bgSaver;
@@ -42,18 +41,20 @@ namespace DuckBot
 
         private Program(string userToken, string cmdPrefix)
         {
-            client = new DiscordClient(x =>
+            client = new Discord.WebSocket.DiscordSocketClient(new Discord.WebSocket.DiscordSocketConfig()
             {
-                x.AppName = Console.Title;
-                x.LogLevel = LogSeverity.Debug;
-                x.LogHandler = Log;
+                AudioMode = Discord.Audio.AudioMode.Outgoing,
+                DefaultRetryMode = RetryMode.AlwaysRetry,
+                LogLevel = LogSeverity.Verbose
             });
-            client.UsingAudio(x =>
+            client.Log += Log;
+
+            client.GuildAvailable += (guild) =>
             {
-                x.Mode = AudioMode.Outgoing;
-                x.Channels = 2;
-            });
-            client.ServerAvailable += (sender, e) => CreateSession(e.Server).AutoJoinAudio(e.Server);
+                Task.Run(() => CreateSession(guild).AutoJoinAudio(guild));
+                return Task.Delay(0);
+            };
+
             /*
             client.GatewaySocket.Disconnected += async (sender, e) =>
             {
@@ -91,7 +92,7 @@ namespace DuckBot
         public void Dispose()
         {
             Log(LogSeverity.Info, Strings.exit_start);
-            client.Disconnect().Wait();
+            client.LogoutAsync().Wait();
             client.Dispose();
             bgCancel.Cancel();
             bgSaver.Wait();
@@ -128,16 +129,19 @@ namespace DuckBot
 
         private void Start()
         {
-            Log(LogSeverity.Info, string.Format(Strings.start_info, client.Config.AppName));
+            Log(LogSeverity.Info, string.Format(Strings.start_info, Console.Title));
             Console.CancelKeyPress += Console_CancelKeyPress;
             client.MessageReceived += MessageRecieved;
             client.UserUpdated += UserUpdated;
-            client.ExecuteAndWait(async () => await client.Connect(token, TokenType.Bot));
+            client.LoginAsync(TokenType.Bot, token).Wait();
+            client.StartAsync();
+            while (client.LoginState != LoginState.LoggedOut)
+                Thread.Sleep(666);
         }
 
         private void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
         {
-            client.Disconnect();
+            client.LogoutAsync();
             e.Cancel = true;
         }
 
@@ -161,7 +165,7 @@ namespace DuckBot
             catch (IOException ex) { Log(ex); }
         }
 
-        internal Session CreateSession(Server srv)
+        internal Session CreateSession(IGuild srv)
         {
             lock (data.ServerSessions)
                 if (!data.ServerSessions.ContainsKey(srv.Id))
@@ -173,32 +177,33 @@ namespace DuckBot
                 else return data.ServerSessions[srv.Id];
         }
 
-        private async void UserUpdated(object sender, UserUpdatedEventArgs e)
+        private async Task UserUpdated(IUser before, IUser after)
         {
-            if (!e.Before.UserActive() && e.After.UserActive())
+            if (!before.UserActive() && after.UserActive())
             {
-                Session s = CreateSession(e.Server);
-                if (s.Msgs.ContainsKey(e.After.Id))
+                IGuildUser guser = (IGuildUser)after;
+                Session s = CreateSession(guser.Guild);
+                if (s.Msgs.ContainsKey(after.Id))
                 {
-                    Inbox i = s.Msgs[e.After.Id];
-                    Channel toSend = await client.CreatePrivateChannel(e.After.Id);
-                    i.Deliver(e.Server, toSend);
-                    lock (s.Msgs) s.Msgs.Remove(e.After.Id);
+                    Inbox i = s.Msgs[after.Id];
+                    IDMChannel toSend = await after.CreateDMChannelAsync();
+                    i.Deliver(guser.Guild, toSend);
+                    lock (s.Msgs) s.Msgs.Remove(after.Id);
                     s.SetPending();
                 }
             }
         }
         
-        private void MessageRecieved(object sender, MessageEventArgs e)
+        private Task MessageRecieved(IMessage msg)
         {
-            if (e.Message.RawText.StartsWith(prefix) && e.User.Id != client.CurrentUser.Id)
+            if (msg.Content.StartsWith(prefix) && msg.Author.Id != client.CurrentUser.Id)
                 Task.Run(async () =>
                 {
-                    string cmd = e.Message.RawText.Substring(1);
+                    string cmd = msg.Content.Substring(1);
                     int ix = cmd.IndexOf(' ');
                     if (ix != -1) cmd = cmd.Remove(ix);
                     cmd = cmd.ToLowerInvariant();
-                    Session s = CreateSession(e.Server);
+                    Session s = CreateSession(((IGuildChannel)msg.Channel).Guild);
                     Thread.CurrentThread.CurrentCulture = new CultureInfo(s.Language);
                     Thread.CurrentThread.CurrentUICulture = CultureInfo.CurrentCulture;
                     CultureInfo.DefaultThreadCurrentCulture = CultureInfo.CurrentCulture;
@@ -208,38 +213,41 @@ namespace DuckBot
                         if (hardCmds.ContainsKey(cmd))
                         {
                             HardCmd hcmd = hardCmds[cmd];
-                            if (hcmd.AdminOnly && (!e.User.ServerPermissions.Administrator || e.User.IsBot))
-                                await e.Channel.SendMessage(Strings.err_notadmin);
+                            IGuildUser guser = (IGuildUser)msg.Author;
+                            if (hcmd.AdminOnly && (!guser.GuildPermissions.Administrator || msg.Author.IsBot))
+                                await msg.Channel.SendMessageAsync(Strings.err_notadmin);
                             else
                             {
-                                string[] args = ix == -1 ? new string[0] : e.Message.RawText.Substring(ix + 2).Split(new char[] { ' ' }, hcmd.ArgsMax, StringSplitOptions.RemoveEmptyEntries);
+                                string[] args = ix == -1 ? new string[0] : msg.Content.Substring(ix + 2).Split(new char[] { ' ' }, hcmd.ArgsMax, StringSplitOptions.RemoveEmptyEntries);
                                 if (args.Length >= hcmd.ArgsMin)
                                 {
-                                    await e.Channel.SendIsTyping();
-                                    string res = hcmd.Func(args, new CmdParams(e), s);
-                                    await e.Channel.SendMessage(string.IsNullOrWhiteSpace(res) ? Strings.ret_empty_cmd : res);
+                                    await msg.Channel.TriggerTypingAsync();
+                                    string res = hcmd.Func(args, new CmdParams(msg), s);
+                                    await msg.Channel.SendMessageAsync(string.IsNullOrWhiteSpace(res) ? Strings.ret_empty_cmd : res);
                                 }
-                                else await e.Channel.SendMessage(Strings.err_params);
+                                else await msg.Channel.SendMessageAsync(Strings.err_params);
                             }
                         }
                         else if (s.Cmds.ContainsKey(cmd))
                         {
-                            await e.Channel.SendIsTyping();
-                            string res = s.Cmds[cmd].Run(new CmdParams(e));
-                            await e.Channel.SendMessage(string.IsNullOrWhiteSpace(res) ? Strings.ret_empty_cmd : res);
+                            await msg.Channel.TriggerTypingAsync();
+                            string res = s.Cmds[cmd].Run(new CmdParams(msg));
+                            await msg.Channel.SendMessageAsync(string.IsNullOrWhiteSpace(res) ? Strings.ret_empty_cmd : res);
                         }
                     }
                     catch (Exception ex)
                     {
                         Log(ex);
-                        await e.Channel.SendMessage(Strings.err_generic + ": " + ex.Message);
+                        await msg.Channel.SendMessageAsync(Strings.err_generic + ": " + ex.Message);
                     }
                 });
+            return Task.Delay(0);
         }
 
-        public static void Log(object sender, LogMessageEventArgs e)
+        public static Task Log(LogMessage e)
         {
             Log(e.Severity, "[" + e.Source + "] " + e.Message);
+            return Task.Delay(0);
         }
 
         public static void Log(Exception ex)
@@ -258,10 +266,12 @@ namespace DuckBot
             }
         }
 
-        public static User FindUser(Server srv, string user)
+        public static IGuildUser FindUser(IGuild srv, string user)
         {
             if (!string.IsNullOrWhiteSpace(user))
-                foreach (User u in srv.FindUsers(user)) return u;
+                foreach (IGuildUser u in srv.GetUsersAsync().Result)
+                    if (u.Username == user)
+                        return u;
             return null;
         }
     }

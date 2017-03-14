@@ -22,7 +22,7 @@ namespace DuckBot.Sandbox
                     string source = template + content;
                     using (LuaFunction func = (LuaFunction)lua.DoString(code, "sandbox")[0])
                     {
-                        object[] rets = func.Call(source, msg.Args, (User)msg.Sender, (Server)msg.Server, (Channel)msg.Channel);
+                        object[] rets = func.Call(source, msg.Args, msg.Sender, msg.Server, msg.Channel);
                         if (rets.Length >= 2)
                         {
                             object[] arr = new object[rets.Length - 1];

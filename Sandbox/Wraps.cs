@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 namespace DuckBot.Sandbox
 {
+/*
     public sealed class Server : MarshalByRefObject
     {
         private readonly Discord.Server inst;
@@ -34,11 +35,11 @@ namespace DuckBot.Sandbox
 
     public sealed class Channel : MarshalByRefObject
     {
-        private readonly Discord.Channel inst;
+        private readonly Discord.IChannel inst;
 
-        public Channel(Discord.Channel chn) { inst = chn; }
+        public Channel(Discord.IChannel chn) { inst = chn; }
 
-        public static implicit operator Channel(Discord.Channel chn) => new Channel(chn);
+        public static implicit operator Channel(Discord.IChannel chn) => new Channel(chn);
 
         public IEnumerable<User> FindUsers(string name, bool exactMatch = false)
         {
@@ -127,4 +128,5 @@ namespace DuckBot.Sandbox
         public DateTime Timestamp => inst.Timestamp;
         public User User => inst.User;
     }
+*/
 }
