@@ -115,9 +115,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Audio\AudioStreamer.cs" />
-    <Compile Include="Audio\ReadAheadStream.cs" />
     <Compile Include="Audio\Song.cs" />
     <Compile Include="Audio\SoundCloudAPI.cs" />
+    <Compile Include="Audio\WrapperStream.cs" />
     <Compile Include="FuncVars.cs" />
     <Compile Include="HardCmd.cs" />
     <Compile Include="Sandbox\CS.cs" />

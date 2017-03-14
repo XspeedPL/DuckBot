@@ -36,8 +36,6 @@ namespace DuckBot
                 {
                     Inst.LoadData();
                     Inst.Start();
-                    while (Console.ReadKey(true).Key != ConsoleKey.Q)
-                        Thread.Sleep(100);
                 }
             }
         }
@@ -47,7 +45,7 @@ namespace DuckBot
             client = new DiscordClient(x =>
             {
                 x.AppName = Console.Title;
-                x.LogLevel = LogSeverity.Info;
+                x.LogLevel = LogSeverity.Debug;
                 x.LogHandler = Log;
             });
             client.UsingAudio(x =>
@@ -55,6 +53,15 @@ namespace DuckBot
                 x.Mode = AudioMode.Outgoing;
                 x.Channels = 2;
             });
+            client.ServerAvailable += (sender, e) => CreateSession(e.Server).AutoJoinAudio(e.Server);
+            /*
+            client.GatewaySocket.Disconnected += async (sender, e) =>
+            {
+                // TODO: Remove this temporary fix once we figure out what is causing disconnects
+                AudioService ass = client.GetService<AudioService>();
+                await ass.ClearClients();
+            };
+            */
             token = userToken;
             prefix = cmdPrefix;
             data = new DuckData();
@@ -122,9 +129,16 @@ namespace DuckBot
         private void Start()
         {
             Log(LogSeverity.Info, string.Format(Strings.start_info, client.Config.AppName));
+            Console.CancelKeyPress += Console_CancelKeyPress;
             client.MessageReceived += MessageRecieved;
             client.UserUpdated += UserUpdated;
-            client.Connect(token, TokenType.Bot);
+            client.ExecuteAndWait(async () => await client.Connect(token, TokenType.Bot));
+        }
+
+        private void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
+        {
+            client.Disconnect();
+            e.Cancel = true;
         }
 
         internal bool IsAdvancedUser(ulong id)
@@ -236,9 +250,12 @@ namespace DuckBot
         public static void Log(LogSeverity severity, string text)
         {
             text = "[" + DateTime.UtcNow.ToShortTimeString() + "] [" + severity + "] " + text;
-            using (StreamWriter sw = DuckData.LogFile.AppendText())
-                sw.WriteLine(text);
-            Console.WriteLine(text);
+            lock (Rand)
+            {
+                using (StreamWriter sw = DuckData.LogFile.AppendText())
+                    sw.WriteLine(text);
+                Console.WriteLine(text);
+            }
         }
 
         public static User FindUser(Server srv, string user)

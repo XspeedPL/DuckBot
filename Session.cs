@@ -7,18 +7,19 @@ namespace DuckBot
 {
     public sealed class Session
     {
-        private static readonly int Version = -1;
+        private static readonly int Version = 1;
 
         public ulong ServerID { get; private set; }
         public Dictionary<string, SoftCmd> Cmds { get; private set; }
         public Dictionary<string, string> Vars { get; private set; }
         internal Dictionary<ulong, Inbox> Msgs { get; private set; }
 
-        public Audio.AudioStreamer AudioPlayer { get; private set; }
+        internal Audio.AudioStreamer AudioPlayer { get; set; }
 
         public bool ShowChanges { get; internal set; }
         public string Language { get; private set; }
         public bool PendingSave { get; private set; }
+        public string MusicChannel { get; internal set; }
 
         public int PesistentVars
         {
@@ -41,6 +42,7 @@ namespace DuckBot
             ShowChanges = false;
             PendingSave = false;
             Language = "en-US";
+            MusicChannel = "";
         }
 
         public void SetPending() { PendingSave = true; }
@@ -86,6 +88,7 @@ namespace DuckBot
                     Vars.Add(name, value);
                 }
                 Language = br.ReadString();
+                if (ver >= 1) MusicChannel = br.ReadString();
             }
         }
 
@@ -118,6 +121,7 @@ namespace DuckBot
                             bw.Write(kvp.Value);
                         }
                     bw.Write(Language);
+                    bw.Write(MusicChannel);
                 }
         }
 
@@ -136,20 +140,25 @@ namespace DuckBot
 
         public async void JoinAudio(Discord.Channel c)
         {
-            if (AudioPlayer != null) AudioPlayer.Dispose();
             IAudioClient client = await c.JoinAudio();
-            AudioPlayer = new Audio.AudioStreamer(client);
+            if (AudioPlayer != null) AudioPlayer.AudioClient = client;
+            else AudioPlayer = new Audio.AudioStreamer(client);
         }
 
-        public async void PlayAudio(string url)
+        internal void AutoJoinAudio(Discord.Server srv)
+        {
+            foreach (Discord.Channel c in srv.FindChannels(MusicChannel, Discord.ChannelType.Voice))
+            {
+                JoinAudio(c);
+                break;
+            }
+        }
+
+        public void PlayAudio(string url)
         {
             if (AudioPlayer != null) AudioPlayer.Dispose();
             using (System.Net.WebClient wc = new System.Net.WebClient())
-            {
-                Task download = Utils.RunAsync(AudioPlayer.ProcessStream, wc.OpenRead(url));
-                AudioPlayer.Play(2);
-                await download;
-            }
+                AudioPlayer.Play(2, wc.OpenRead(url));
         }
     }
 }

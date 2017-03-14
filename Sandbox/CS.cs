@@ -48,7 +48,7 @@ namespace DuckBot.Sandbox
             setup.DisallowPublisherPolicy = true;
             PermissionSet ps = new PermissionSet(PermissionState.None);
             ps.AddPermission(new FileIOPermission(FileIOPermissionAccess.Read | FileIOPermissionAccess.PathDiscovery, setup.ApplicationBase));
-            ps.AddPermission(new SecurityPermission(SecurityPermissionFlag.Execution | SecurityPermissionFlag.UnmanagedCode));
+            ps.AddPermission(new SecurityPermission(SecurityPermissionFlag.Execution | SecurityPermissionFlag.UnmanagedCode | SecurityPermissionFlag.ControlThread));
             ps.AddPermission(new System.Net.WebPermission(PermissionState.Unrestricted));
             AppDomain app = null;
             string dll = null;
@@ -77,6 +77,7 @@ namespace DuckBot.Sandbox
             CultureInfo.DefaultThreadCurrentCulture = ci;
             CultureInfo.DefaultThreadCurrentUICulture = ci;
             Console.SetOut(sw);
+            Console.SetError(sw);
             Assembly script = Assembly.LoadFile(assembly);
             MethodInfo method = script.GetType("DuckBot.Script").GetMethod("Code");
             Task<string> task = Task.Run(() => (string)method.Invoke(null, new object[] { args, sender, server, channel }));
