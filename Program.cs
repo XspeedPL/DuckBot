@@ -20,6 +20,8 @@ namespace DuckBot
         private readonly string token, prefix;
         private readonly Task bgSaver;
         private readonly CancellationTokenSource bgCancel;
+
+        private bool end;
         
         static void Main()
         {
@@ -41,28 +43,13 @@ namespace DuckBot
 
         private Program(string userToken, string cmdPrefix)
         {
+            end = false;
             client = new Discord.WebSocket.DiscordSocketClient(new Discord.WebSocket.DiscordSocketConfig()
             {
-                AudioMode = Discord.Audio.AudioMode.Outgoing,
                 DefaultRetryMode = RetryMode.AlwaysRetry,
-                LogLevel = LogSeverity.Verbose
+                LogLevel = LogSeverity.Info
             });
             client.Log += Log;
-
-            client.GuildAvailable += (guild) =>
-            {
-                Task.Run(() => CreateSession(guild).AutoJoinAudio(guild));
-                return Task.Delay(0);
-            };
-
-            /*
-            client.GatewaySocket.Disconnected += async (sender, e) =>
-            {
-                // TODO: Remove this temporary fix once we figure out what is causing disconnects
-                AudioService ass = client.GetService<AudioService>();
-                await ass.ClearClients();
-            };
-            */
             token = userToken;
             prefix = cmdPrefix;
             data = new DuckData();
@@ -92,7 +79,11 @@ namespace DuckBot
         public void Dispose()
         {
             Log(LogSeverity.Info, Strings.exit_start);
+            lock (data.ServerSessions)
+                foreach (Session s in data.ServerSessions.Values)
+                    s.AudioPlayer.Dispose();
             client.LogoutAsync().Wait();
+            client.StopAsync();
             client.Dispose();
             bgCancel.Cancel();
             bgSaver.Wait();
@@ -132,16 +123,20 @@ namespace DuckBot
             Log(LogSeverity.Info, string.Format(Strings.start_info, Console.Title));
             Console.CancelKeyPress += Console_CancelKeyPress;
             client.MessageReceived += MessageRecieved;
-            client.UserUpdated += UserUpdated;
+            client.GuildMemberUpdated += GuildMemberUpdated;
+            client.GuildAvailable += (guild) =>
+            {
+                Task.Run(() => CreateSession(guild).AutoJoinAudio(guild));
+                return Task.CompletedTask;
+            };
             client.LoginAsync(TokenType.Bot, token).Wait();
             client.StartAsync();
-            while (client.LoginState != LoginState.LoggedOut)
-                Thread.Sleep(666);
+            while (!end) Thread.Sleep(666);
         }
 
         private void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
         {
-            client.LogoutAsync();
+            end = true;
             e.Cancel = true;
         }
 
@@ -177,17 +172,16 @@ namespace DuckBot
                 else return data.ServerSessions[srv.Id];
         }
 
-        private async Task UserUpdated(IUser before, IUser after)
+        private async Task GuildMemberUpdated(IGuildUser before, IGuildUser after)
         {
             if (!before.UserActive() && after.UserActive())
             {
-                IGuildUser guser = (IGuildUser)after;
-                Session s = CreateSession(guser.Guild);
+                Session s = CreateSession(after.Guild);
                 if (s.Msgs.ContainsKey(after.Id))
                 {
                     Inbox i = s.Msgs[after.Id];
                     IDMChannel toSend = await after.CreateDMChannelAsync();
-                    i.Deliver(guser.Guild, toSend);
+                    i.Deliver(after.Guild, toSend);
                     lock (s.Msgs) s.Msgs.Remove(after.Id);
                     s.SetPending();
                 }
@@ -214,7 +208,7 @@ namespace DuckBot
                         {
                             HardCmd hcmd = hardCmds[cmd];
                             IGuildUser guser = (IGuildUser)msg.Author;
-                            if (hcmd.AdminOnly && (!guser.GuildPermissions.Administrator || msg.Author.IsBot))
+                            if (hcmd.AdminOnly && (!guser.GuildPermissions.Administrator || msg.Author.IsBot) && !data.AdvancedUsers.Contains(msg.Author.Id))
                                 await msg.Channel.SendMessageAsync(Strings.err_notadmin);
                             else
                             {
@@ -241,13 +235,13 @@ namespace DuckBot
                         await msg.Channel.SendMessageAsync(Strings.err_generic + ": " + ex.Message);
                     }
                 });
-            return Task.Delay(0);
+            return Task.CompletedTask;
         }
 
         public static Task Log(LogMessage e)
         {
             Log(e.Severity, "[" + e.Source + "] " + e.Message);
-            return Task.Delay(0);
+            return Task.CompletedTask;
         }
 
         public static void Log(Exception ex)
@@ -270,7 +264,7 @@ namespace DuckBot
         {
             if (!string.IsNullOrWhiteSpace(user))
                 foreach (IGuildUser u in srv.GetUsersAsync().Result)
-                    if (u.Username == user)
+                    if (u.Username == user || u.Mention == user)
                         return u;
             return null;
         }

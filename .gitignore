@@ -50,3 +50,5 @@ obj
 *.suo
 *.sln
 /packages
+.vs
+*.user

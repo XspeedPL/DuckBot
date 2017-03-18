@@ -11,19 +11,20 @@ using DuckBot.Resources;
 
 namespace DuckBot.Sandbox
 {
+
     public sealed class CS : MarshalByRefObject
     {
         public CS() { }
 
         private static string Compile(string content)
         {
-            const string template = "using System;using System.Net;using System.Collections.Generic;using DuckBot.Sandbox;namespace DuckBot {public static class Script {public static string Code(string rawText,User sender,Server server,Channel channel){\n";
+            const string template = "using System;using System.Net;using System.Collections.Generic;using DuckBot.Sandbox;namespace DuckBot {public static class Script {public static string Code(string rawText,Object sender,Object server,Object channel){\n";
             string source = template + content + "}}}";
             using (CodeDomProvider compiler = CodeDomProvider.CreateProvider("CSharp"))
             {
                 CompilerParameters pars = new CompilerParameters();
                 pars.ReferencedAssemblies.Add("System.dll");
-                pars.ReferencedAssemblies.Add("Discord.Net.dll");
+                pars.ReferencedAssemblies.Add("Discord.Net.Core.dll");
                 pars.ReferencedAssemblies.Add(typeof(Program).Assembly.Location);
                 pars.GenerateExecutable = false;
                 pars.GenerateInMemory = false;
@@ -72,7 +73,7 @@ namespace DuckBot.Sandbox
             }
         }
 
-        private string Remote(CultureInfo ci, StringWriter sw, string assembly, string args, Discord.IUser sender, Discord.IGuild server, Discord.IChannel channel)
+        private string Remote(CultureInfo ci, StringWriter sw, string assembly, string args, Discord.IGuildUser sender, Discord.IGuild server, Discord.ITextChannel channel)
         {
             CultureInfo.DefaultThreadCurrentCulture = ci;
             CultureInfo.DefaultThreadCurrentUICulture = ci;

@@ -78,13 +78,19 @@ namespace DuckBot.Audio
                     }
             }
             await download;
-            Dispose();
+            End();
+        }
+
+        public void End()
+        {
+            end = true;
+            buffWave = null;
         }
 
         public void Dispose()
         {
-            end = true;
-            buffWave = null;
+            End();
+            if (AudioClient != null) AudioClient.Dispose();
         }
     }
 }

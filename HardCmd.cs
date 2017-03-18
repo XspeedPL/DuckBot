@@ -58,8 +58,7 @@ namespace DuckBot
                 if (s.ShowChanges) lock (s) toSend = string.Format(Strings.ret_changes, oldContent, s.Cmds[cmd].AsCodeBlock());
                 else toSend = Strings.ret_success;
                 return toSend;
-            }, string.Format("<{0}> <{1}> <{2}>", Strings.lab_type, Strings.lab_name, Strings.lab_content) + "`\n" + Strings.lab_type.StartCase() + ": `csharp, lua, switch, text", false));
-            // TODO: Restore admin requirement?
+            }, string.Format("<{0}> <{1}> <{2}>", Strings.lab_type, Strings.lab_name, Strings.lab_content) + "`\n" + Strings.lab_type.StartCase() + ": `csharp, lua, switch, text", true));
 
             dict.Add("remove", new HardCmd(1, 2, (args, msg, s) =>
             {
@@ -209,16 +208,23 @@ namespace DuckBot
 
             dict.Add("playsong", new HardCmd(1, 1, (args, msg, s) =>
             {
-                Audio.Song song;
-                string result = Audio.SoundCloudAPI.Search(args[0], out song);
+                if (s.AudioPlayer == null) return Strings.err_generic;
+                (string result, string song, string url) = Audio.SoundCloudAPI.Search(args[0]);
                 if (song != null)
                 {
                     msg.Channel.SendMessageAsync(result);
-                    s.PlayAudio(song.URL + "?" + Audio.SoundCloudAPI.CLIENT_ID);
-                    return "Song " + song.Full + " finished.";
+                    s.PlayAudio(url);
+                    return "Song " + song + " finished.";
                 }
                 else return result;
             }, "<song-name>"));
+
+            dict.Add("stopsong", new HardCmd(0, 1, (args, msg, s) =>
+            {
+                if (s.AudioPlayer == null) return Strings.err_generic;
+                else s.AudioPlayer.End();
+                return Strings.ret_success;
+            }, ""));
 
             return dict;
         }

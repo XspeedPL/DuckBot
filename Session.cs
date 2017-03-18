@@ -157,7 +157,7 @@ namespace DuckBot
 
         public void PlayAudio(string url)
         {
-            if (AudioPlayer != null) AudioPlayer.Dispose();
+            AudioPlayer.End();
             using (System.Net.WebClient wc = new System.Net.WebClient())
                 AudioPlayer.Play(2, wc.OpenRead(url));
         }
