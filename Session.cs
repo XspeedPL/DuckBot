@@ -9,7 +9,7 @@ namespace DuckBot
     {
         private static readonly int Version = 1;
 
-        public ulong ServerID { get; private set; }
+        public ulong ServerId { get; private set; }
         public Dictionary<string, SoftCmd> Cmds { get; private set; }
         public Dictionary<string, string> Vars { get; private set; }
         internal Dictionary<ulong, Inbox> Msgs { get; private set; }
@@ -21,7 +21,7 @@ namespace DuckBot
         public bool PendingSave { get; private set; }
         public string MusicChannel { get; internal set; }
 
-        public int PesistentVars
+        public int PersistentVars
         {
             get
             {
@@ -35,7 +35,7 @@ namespace DuckBot
 
         public Session(ulong sid)
         {
-            ServerID = sid;
+            ServerId = sid;
             Cmds = new Dictionary<string, SoftCmd>();
             Vars = new Dictionary<string, string>();
             Msgs = new Dictionary<ulong, Inbox>();
@@ -58,7 +58,7 @@ namespace DuckBot
             else return false;
         }
 
-        public void Load(BinaryReader br)
+        internal void Load(BinaryReader br)
         {
             int ver = br.ReadInt32();
             int count = br.ReadInt32();
@@ -88,13 +88,13 @@ namespace DuckBot
                     Vars.Add(name, value);
                 }
                 Language = br.ReadString();
-                if (ver >= 1) MusicChannel = br.ReadString();
+                MusicChannel = ver >= 1 ? br.ReadString() : "";
             }
         }
 
         public void Save()
         {
-            string file = Path.Combine(DuckData.SessionsDir.FullName, "session_" + ServerID + ".dat");
+            string file = Path.Combine(DuckData.SessionsDir.FullName, "session_" + ServerId + ".dat");
             lock (this)
                 using (BinaryWriter bw = new BinaryWriter(new FileStream(file, FileMode.Create, FileAccess.Write)))
                 {
@@ -113,7 +113,7 @@ namespace DuckBot
                         kvp.Value.Save(bw);
                     }
                     bw.Write(ShowChanges);
-                    bw.Write(PesistentVars);
+                    bw.Write(PersistentVars);
                     foreach (KeyValuePair<string, string> kvp in Vars)
                         if (!kvp.Key.StartsWith("_"))
                         {
@@ -125,22 +125,22 @@ namespace DuckBot
                 }
         }
 
-        public string AddMessage(ulong sender, ulong recv, string msg)
+        public string AddMessage(ulong sender, ulong recipient, string message)
         {
             Inbox i;
             lock (this)
-                if (!Msgs.ContainsKey(recv))
+                if (!Msgs.ContainsKey(recipient))
                 {
                     i = new Inbox();
-                    Msgs.Add(recv, i);
+                    Msgs.Add(recipient, i);
                 }
-                else i = Msgs[recv];
-            return i.AddMessage(sender, msg);
+                else i = Msgs[recipient];
+            return i.AddMessage(sender, message);
         }
 
-        public async Task JoinAudio(Discord.IVoiceChannel c)
+        public async Task JoinAudio(Discord.IVoiceChannel channel)
         {
-            IAudioClient client = await c.ConnectAsync();
+            IAudioClient client = await channel.ConnectAsync();
             if (AudioPlayer != null) AudioPlayer.AudioClient = client;
             else AudioPlayer = new Audio.AudioStreamer(client);
         }
@@ -155,11 +155,11 @@ namespace DuckBot
                 }
         }
 
-        public void PlayAudio(string url)
+        public void PlayAudio(string stream)
         {
             AudioPlayer.End();
             using (System.Net.WebClient wc = new System.Net.WebClient())
-                AudioPlayer.Play(2, wc.OpenRead(url));
+                AudioPlayer.Play(2, wc.OpenRead(stream));
         }
 
         public void Dispose()

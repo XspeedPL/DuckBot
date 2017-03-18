@@ -197,8 +197,8 @@ namespace DuckBot
                     int ix = cmd.IndexOf(' ');
                     if (ix != -1) cmd = cmd.Remove(ix);
                     cmd = cmd.ToLowerInvariant();
-                    Session s = CreateSession(((IGuildChannel)msg.Channel).Guild);
-                    Thread.CurrentThread.CurrentCulture = new CultureInfo(s.Language);
+                    Session ss = CreateSession(((IGuildChannel)msg.Channel).Guild);
+                    Thread.CurrentThread.CurrentCulture = new CultureInfo(ss.Language);
                     Thread.CurrentThread.CurrentUICulture = CultureInfo.CurrentCulture;
                     CultureInfo.DefaultThreadCurrentCulture = CultureInfo.CurrentCulture;
                     CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.CurrentCulture;
@@ -216,16 +216,16 @@ namespace DuckBot
                                 if (args.Length >= hcmd.ArgsMin)
                                 {
                                     await msg.Channel.TriggerTypingAsync();
-                                    string res = hcmd.Func(args, new CmdParams(msg), s);
+                                    string res = hcmd.Func(args, new CmdContext(msg, ss));
                                     await msg.Channel.SendMessageAsync(string.IsNullOrWhiteSpace(res) ? Strings.ret_empty_cmd : res);
                                 }
                                 else await msg.Channel.SendMessageAsync(Strings.err_params);
                             }
                         }
-                        else if (s.Cmds.ContainsKey(cmd))
+                        else if (ss.Cmds.ContainsKey(cmd))
                         {
                             await msg.Channel.TriggerTypingAsync();
-                            string res = s.Cmds[cmd].Run(new CmdParams(msg));
+                            string res = ss.Cmds[cmd].Run(new CmdContext(msg, ss));
                             await msg.Channel.SendMessageAsync(string.IsNullOrWhiteSpace(res) ? Strings.ret_empty_cmd : res);
                         }
                     }

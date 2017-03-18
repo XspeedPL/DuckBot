@@ -50,7 +50,7 @@ namespace DuckBot.Audio
                     }
                     while (!end);
             }
-            catch (Exception ex) { Program.Log(ex); }
+            catch (IOException ex) { Program.Log(ex); }
             finally
             {
                 if (decompressor != null) decompressor.Dispose();

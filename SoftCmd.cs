@@ -33,25 +33,27 @@ namespace DuckBot
             return "```" + pre + "\n" + Content + "\n```";
         }
 
-        public void Load(BinaryReader br)
+        public void Load(BinaryReader reader)
         {
+            if (reader == null) throw new ArgumentNullException("reader");
             lock (this)
             {
-                Creator = br.ReadString();
-                CreationDate = DateTime.FromBinary(br.ReadInt64());
-                Type = (CmdType)br.ReadByte();
-                Content = br.ReadString();
+                Creator = reader.ReadString();
+                CreationDate = DateTime.FromBinary(reader.ReadInt64());
+                Type = (CmdType)reader.ReadByte();
+                Content = reader.ReadString();
             }
         }
 
-        public void Save(BinaryWriter bw)
+        public void Save(BinaryWriter writer)
         {
+            if (writer == null) throw new ArgumentNullException("writer");
             lock (this)
             {
-                bw.Write(Creator);
-                bw.Write(CreationDate.Ticks);
-                bw.Write((byte)Type);
-                bw.Write(Content);
+                writer.Write(Creator);
+                writer.Write(CreationDate.Ticks);
+                writer.Write((byte)Type);
+                writer.Write(Content);
             }
         }
 
@@ -65,18 +67,18 @@ namespace DuckBot
             Content = content;
         }
 
-        private static string[] EscSplit(string args, char delim)
+        private static string[] EscSplit(string args, char delimiter)
         {
             List<string> ret = new List<string>();
             int old, prev, ix;
-            if (args[0] == delim)
+            if (args[0] == delimiter)
             {
                 ret.Add("");
                 old = 1;
             }
             else old = 0;
             prev = old;
-            while ((ix = args.IndexOf(delim, prev)) != -1)
+            while ((ix = args.IndexOf(delimiter, prev)) != -1)
             {
                 if (args[ix - 1] != '^')
                 {
@@ -89,66 +91,66 @@ namespace DuckBot
             return ret.ToArray();
         }
 
-        public static string Escape(string s)
+        public static string Escape(string data)
         {
-            foreach (char c in SpecialChars) s = s.Replace(c.ToString(), "^" + c);
-            return s;
+            foreach (char c in SpecialChars) data = data.Replace(c.ToString(), "^" + c);
+            return data;
         }
 
-        public static string Unescape(string s)
+        public static string Unescape(string data)
         {
-            foreach (char c in SpecialChars) s = s.Replace("^" + c, c.ToString());
-            return s;
+            foreach (char c in SpecialChars) data = data.Replace("^" + c, c.ToString());
+            return data;
         }
 
-        public static string CmdEngine(string content, CmdParams msg)
+        public static string CmdEngine(string content, CmdContext context)
         {
-            string ret = CmdEngine(content, msg, 0);
+            string ret = CmdEngine(content, context, 0);
             return Unescape(ret);
         }
 
-        private static string CmdEngine(string content, CmdParams msg, int depth)
+        private static string CmdEngine(string content, CmdContext context, int depth)
         {
             return depth > 10 || !content.Contains("{") ? content : CmdPattern.Replace(content, (match) =>
             {
                 string cmd = match.Groups[1].Value;
-                if (FuncVars.Exists(cmd))
+                if (FuncVar.Exists(cmd))
                 {
                     string arg = match.Groups[2].Success ? match.Groups[2].Value.Substring(1) : null;
-                    if (arg != null) arg = CmdEngine(arg, msg, depth + 1);
-                    return FuncVars.Run(cmd, arg == null ? new string[0] : EscSplit(arg, ','), msg);
+                    if (arg != null) arg = CmdEngine(arg, context, depth + 1);
+                    return FuncVar.Run(cmd, arg == null ? new string[0] : EscSplit(arg, ','), context);
                 }
                 else return match.Value;
             });
         }
 
-        public string Run(CmdParams msg)
+        public string Run(CmdContext context)
         {
             string content;
             lock (this) content = Content;
-            if (Type == CmdType.Text) return CmdEngine(content, msg);
+            if (Type == CmdType.Text) return CmdEngine(content, context);
             else if (Type == CmdType.Switch)
             {
                 string[] cases = EscSplit(content, '|');
-                cases[0] = CmdEngine(cases[0].Trim(), msg);
+                cases[0] = CmdEngine(cases[0].Trim(), context);
                 for (int i = 1; i < cases.Length; ++i)
                 {
                     cases[i] = cases[i].Trim();
                     if (cases[i].StartsWith("default"))
-                        return CmdEngine(cases[i].Substring(cases[i].IndexOf(' ') + 1), msg);
+                        return CmdEngine(cases[i].Substring(cases[i].IndexOf(' ') + 1), context);
                     else if (cases[i].StartsWith("case"))
                     {
                         string match = cases[i].Substring(cases[i].IndexOf('"') + 1);
                         int ix = match.IndexOf('"');
                         string data = match.Substring(ix + 1).Trim();
-                        if (cases[0] == CmdEngine(match.Remove(ix), msg))
-                            return CmdEngine(data, msg);
+                        if (cases[0] == CmdEngine(match.Remove(ix), context))
+                            return CmdEngine(data, context);
                     }
                 }
                 return "Switch " + Strings.ret_empty;
             }
-            else if (Type == CmdType.Lua) return Sandbox.Lua.Execute(content, msg);
-            else if (Type == CmdType.CSharp) return Sandbox.CS.Execute(content, msg);
+            else if (Type == CmdType.Lua) return Sandbox.Lua.Execute(content, context);
+            else if (Type == CmdType.CSharp) return Sandbox.CS.Execute(content, context);
             else throw new InvalidOperationException("Type");
         }
     }

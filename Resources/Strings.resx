@@ -124,7 +124,7 @@
     <value>Compilation error</value>
   </data>
   <data name="err_generic" xml:space="preserve">
-    <value>An error has occured</value>
+    <value>An error has occurred</value>
   </data>
   <data name="err_nogeneric" xml:space="preserve">
     <value>No {0} with specified name exists.</value>
@@ -142,7 +142,7 @@
     <value>Insufficient amount of parameters specified.</value>
   </data>
   <data name="err_permissions" xml:space="preserve">
-    <value>You don't have sufficent permissons.</value>
+    <value>You don't have sufficient permissions.</value>
   </data>
   <data name="err_scrtimeout" xml:space="preserve">
     <value>Script execution timed out!</value>

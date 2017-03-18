@@ -10,10 +10,7 @@ namespace DuckBot.Audio
     internal static class SoundCloudAPI
     {
         private static readonly string CLIENT_ID = "client_id=cd3e093bf9688f09e3cdf15565fed8f3";
-
-        internal static readonly Regex REX_ALPHA = new Regex("[^a-zA-Z0-9 &'.()-]");
-        internal static readonly Regex REX_BRCTS = new Regex("(\\([\\s0-9]*\\))");
-
+        
         public static (string, string, string) Search(string song)
         {
             using (WebClient wc = new WebClient())
@@ -30,7 +27,7 @@ namespace DuckBot.Audio
                         if (res.Count > 1)
                         {
                             foreach (ResultItem item in res)
-                                item.diff = Utils.Similarity(song, item.Title);// - Math.Abs(item.Title.Length - song.Length) / 2;
+                                item.diff = Utils.Similarity(song, item.Title);
                             res.Sort();
                             foreach (ResultItem item in res)
                             {
@@ -40,12 +37,11 @@ namespace DuckBot.Audio
                             }
                         }
                     }
-                    catch (Exception ex)
+                    catch (WebException)
                     {
                         System.Threading.Thread.Sleep(500);
-                        if (ex is WebException)
-                            foreach (ResultItem ri in res)
-                                used.Remove(ri);
+                        foreach (ResultItem ri in res)
+                            used.Remove(ri);
                     }
                 return ("Track '" + song + "' not found!", null, null);
             }
@@ -61,15 +57,17 @@ namespace DuckBot.Audio
                 Title = title; URL = url; User = user; diff = -1;
             }
 
-            public int CompareTo(ResultItem ri)
+            public int CompareTo(ResultItem item)
             {
-                int ret = ri.diff - diff;
-                return ret == 0 ? Title.Length - ri.Title.Length : ret;
+                if (item == null) throw new ArgumentNullException("item");
+                int ret = item.diff - diff;
+                return ret == 0 ? Title.Length - item.Title.Length : ret;
             }
 
-            public bool Equals(ResultItem ri)
+            public bool Equals(ResultItem item)
             {
-                return User.Equals(ri.User, StringComparison.OrdinalIgnoreCase) && Title.Equals(ri.Title);
+                if (item == null) throw new ArgumentNullException("item");
+                return User.Equals(item.User, StringComparison.OrdinalIgnoreCase) && Title.Equals(item.Title);
             }
 
             public static IEnumerable<ResultItem> Parse(string data)

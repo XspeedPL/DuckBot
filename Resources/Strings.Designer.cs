@@ -79,7 +79,7 @@ namespace DuckBot.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to An error has occured.
+        ///   Looks up a localized string similar to An error has occurred.
         /// </summary>
         internal static string err_generic {
             get {
@@ -133,7 +133,7 @@ namespace DuckBot.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to You don&apos;t have sufficent permissons..
+        ///   Looks up a localized string similar to You don&apos;t have sufficient permissions..
         /// </summary>
         internal static string err_permissions {
             get {

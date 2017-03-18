@@ -43,7 +43,7 @@
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
     <RunCodeAnalysis>false</RunCodeAnalysis>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet>ExtendedDesignGuidelineRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -198,14 +198,14 @@
     <Compile Include="Audio\AudioStreamer.cs" />
     <Compile Include="Audio\SoundCloudAPI.cs" />
     <Compile Include="Audio\WrapperStream.cs" />
-    <Compile Include="FuncVars.cs" />
+    <Compile Include="FuncVar.cs" />
     <Compile Include="HardCmd.cs" />
     <Compile Include="Sandbox\CS.cs" />
     <Compile Include="Sandbox\Lua.cs" />
     <Compile Include="SoftCmd.cs" />
     <Compile Include="DuckData.cs" />
     <Compile Include="Inbox.cs" />
-    <Compile Include="CmdParams.cs" />
+    <Compile Include="CmdContext.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Resources\Strings.Designer.cs">

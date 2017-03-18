@@ -7,7 +7,7 @@ namespace DuckBot.Sandbox
 {
     internal static class Lua
     {
-        internal static string Execute(string content, CmdParams msg)
+        internal static string Execute(string content, CmdContext msg)
         {
             using (NLua.Lua lua = new NLua.Lua())
             using (PrintProxy proxy = new PrintProxy())

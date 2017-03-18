@@ -40,7 +40,7 @@ namespace DuckBot.Sandbox
             }
         }
 
-        internal static string Execute(string content, CmdParams msg)
+        internal static string Execute(string content, CmdContext msg)
         {
             AppDomainSetup setup = new AppDomainSetup();
             setup.ApplicationBase = AppDomain.CurrentDomain.BaseDirectory;
@@ -79,7 +79,7 @@ namespace DuckBot.Sandbox
             CultureInfo.DefaultThreadCurrentUICulture = ci;
             Console.SetOut(sw);
             Console.SetError(sw);
-            Assembly script = Assembly.LoadFile(assembly);
+            Assembly script = Assembly.LoadFrom(assembly);
             MethodInfo method = script.GetType("DuckBot.Script").GetMethod("Code");
             Task<string> task = Task.Run(() => (string)method.Invoke(null, new object[] { args, sender, server, channel }));
             return task.Wait(90000) ? task.Result : Strings.err_scrtimeout;

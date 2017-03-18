@@ -1,25 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DuckBot
 {
-    public static class FuncVars
+    public delegate string CmdHandler(string[] args, CmdContext context);
+
+    public static class FuncVar
     {
-        public delegate string CmdAct(string[] args, CmdParams msg);
+        private static Dictionary<string, CmdHandler> vars = CreateDefault();
 
-        private static Dictionary<string, CmdAct> vars = new Dictionary<string, CmdAct>();
-
-        static FuncVars()
+        private static Dictionary<string, CmdHandler> CreateDefault()
         {
-            Register("user", (args, msg) => { return msg.Sender.Username; });
-            Register("nickOrUser", (args, msg) =>
+            Dictionary<string, CmdHandler> dict = new Dictionary<string, CmdHandler>();
+
+            dict.Add("user", (args, msg) => { return msg.Sender.Username; });
+
+            dict.Add("nickOrUser", (args, msg) =>
             {
                 return string.IsNullOrWhiteSpace(msg.Sender.Nickname) ? msg.Sender.Username : msg.Sender.Nickname;
             });
-            Register("input", (args, msg) =>
+
+            dict.Add("input", (args, msg) =>
             {
                 if (args.Length >= 1)
                     try
@@ -27,10 +28,11 @@ namespace DuckBot
                         int ix = int.Parse(args[0]);
                         return SoftCmd.Escape(msg.Args.Split(' ')[ix]);
                     }
-                    catch { return "ERROR"; }
+                    catch (FormatException) { return "ERROR"; }
                 return SoftCmd.Escape(msg.Args);
             });
-            Register("mention", (args, msg) =>
+
+            dict.Add("mention", (args, msg) =>
             {
                 if (args.Length >= 1)
                 {
@@ -39,7 +41,8 @@ namespace DuckBot
                 }
                 else return msg.Sender.Mention;
             });
-            Register("rand", (args, msg) =>
+
+            dict.Add("rand", (args, msg) =>
             {
                 try
                 {
@@ -48,30 +51,34 @@ namespace DuckBot
                         return (Program.Rand.Next(int.Parse(args[1]) - i1) + i1).ToString();
                     else return Program.Rand.Next(i1).ToString();
                 }
-                catch { return "ERROR"; }
+                catch (FormatException) { return "ERROR"; }
             });
-            Register("command", (args, msg) =>
+
+            dict.Add("command", (args, msg) =>
             {
                 if (args.Length >= 1)
                 {
-                    Session s = Program.Inst.CreateSession(msg.Server);
+                    Session s = msg.Session;
                     SoftCmd c;
                     lock (s) c = s.Cmds.ContainsKey(args[0]) ? s.Cmds[args[0]] : null;
-                    if (c != null) return c.Run(new CmdParams(msg, args.Length >= 2 ? args[1] : ""));
+                    if (c != null) return c.Run(new CmdContext(msg, args.Length >= 2 ? args[1] : ""));
                 }
                 return "ERROR";
             });
-            Register("if", (args, msg) =>
+
+            dict.Add("if", (args, msg) =>
             {
                 if (args.Length >= 3)
                     return args[0].Length == args[1].Length ? args[2] : args[3];
                 else return "ERROR";
             });
-            Register("length", (args, msg) =>
+
+            dict.Add("length", (args, msg) =>
             {
                 return args.Length >= 1 ? args[0].Length.ToString() : "ERROR";
             });
-            Register("substr", (args, msg) =>
+
+            dict.Add("substr", (args, msg) =>
             {
                 try
                 {
@@ -84,29 +91,33 @@ namespace DuckBot
                     }
                     else return s.Substring(i1 >= 0 ? i1 : s.Length + i1);
                 }
-                catch { return "ERROR"; }
+                catch (FormatException) { return "ERROR"; }
             });
-            Register("date", (args, msg) =>
+
+            dict.Add("date", (args, msg) =>
             {
                 if (args.Length >= 1) return DateTime.UtcNow.ToString(args[0]);
                 else return DateTime.UtcNow.ToShortDateString();
             });
-            Register("time", (args, msg) =>
+
+            dict.Add("time", (args, msg) =>
             {
                 if (args.Length >= 1 && args[0] == "long") return DateTime.UtcNow.ToLongTimeString();
                 else return DateTime.UtcNow.ToShortTimeString();
             });
-            Register("get", (args, msg) =>
+
+            dict.Add("get", (args, msg) =>
             {
-                Session s = Program.Inst.CreateSession(msg.Server);
+                Session s = msg.Session;
                 lock (s)
                     return args.Length >= 1 && s.Vars.ContainsKey(args[0]) ? s.Vars[args[0]] : "ERROR";
             });
-            Register("set", (args, msg) =>
+
+            dict.Add("set", (args, msg) =>
             {
                 if (args.Length >= 2)
                 {
-                    Session s = Program.Inst.CreateSession(msg.Server);
+                    Session s = msg.Session;
                     lock (s)
                         if (s.Vars.ContainsKey(args[0])) s.Vars[args[0]] = args[1];
                         else s.Vars.Add(args[0], args[1]);
@@ -115,15 +126,19 @@ namespace DuckBot
                 }
                 else return "ERROR";
             });
-            Register("eval", (args, msg) =>
+
+            dict.Add("eval", (args, msg) =>
             {
                 string func = SoftCmd.Unescape(string.Join(",", args));
                 return SoftCmd.CmdEngine(func, msg);
             });
-            Register("find", (args, msg) =>
+
+            dict.Add("find", (args, msg) =>
             {
                 return args.Length >= 2 ? args[0].IndexOf(args[1]).ToString() : "ERROR";
             });
+
+            return dict;
         }
 
         public static bool Exists(string name)
@@ -131,12 +146,12 @@ namespace DuckBot
             return vars.ContainsKey(name);
         }
 
-        public static string Run(string name, string[] args, CmdParams msg)
+        public static string Run(string name, string[] args, CmdContext ctx)
         {
-            return vars[name](args, msg);
+            return vars[name](args, ctx);
         }
 
-        public static bool Register(string name, CmdAct action)
+        public static bool Register(string name, CmdHandler action)
         {
             if (Exists(name)) return false;
             else { vars.Add(name, action); return true; }

@@ -50,6 +50,7 @@ namespace DuckBot.Audio
 
         protected override void Dispose(bool disposing)
         {
+            base.Dispose(disposing);
             BaseStream.Dispose();
         }
     }
