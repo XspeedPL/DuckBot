@@ -81,7 +81,7 @@ namespace DuckBot
             Log(LogSeverity.Info, Strings.exit_start);
             lock (data.ServerSessions)
                 foreach (Session s in data.ServerSessions.Values)
-                    s.AudioPlayer.Dispose();
+                    s.Dispose();
             client.LogoutAsync().Wait();
             client.StopAsync();
             client.Dispose();

@@ -5,7 +5,7 @@ using Discord.Audio;
 
 namespace DuckBot
 {
-    public sealed class Session
+    public sealed class Session : System.IDisposable
     {
         private static readonly int Version = 1;
 
@@ -160,6 +160,11 @@ namespace DuckBot
             AudioPlayer.End();
             using (System.Net.WebClient wc = new System.Net.WebClient())
                 AudioPlayer.Play(2, wc.OpenRead(url));
+        }
+
+        public void Dispose()
+        {
+            if (AudioPlayer != null) AudioPlayer.Dispose();
         }
     }
 }
