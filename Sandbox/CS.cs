@@ -18,14 +18,15 @@ namespace DuckBot.Sandbox
 
         private static string Compile(string content)
         {
-            const string template = "using System;using System.Net;using System.Collections.Generic;using DuckBot.Sandbox;namespace DuckBot {public static class Script {public static string Code(string rawText,Object sender,Object server,Object channel){\n";
+            const string template = "using System;using System.Net;using System.Collections.Generic;using Discord;namespace DuckBot {public static class Script {public static string Code(string rawText,IGuildUser sender,IGuild server,ITextChannel channel){\n";
             string source = template + content + "}}}";
             using (CodeDomProvider compiler = CodeDomProvider.CreateProvider("CSharp"))
             {
+                Assembly ass = typeof(Program).Assembly;
                 CompilerParameters pars = new CompilerParameters();
-                pars.ReferencedAssemblies.Add("System.dll");
-                pars.ReferencedAssemblies.Add("Discord.Net.Core.dll");
-                pars.ReferencedAssemblies.Add(typeof(Program).Assembly.Location);
+                foreach (AssemblyName an in ass.GetReferencedAssemblies())
+                    pars.ReferencedAssemblies.Add(Assembly.ReflectionOnlyLoad(an.FullName).Location);
+                pars.ReferencedAssemblies.Add(ass.Location);
                 pars.GenerateExecutable = false;
                 pars.GenerateInMemory = false;
                 pars.OutputAssembly = Guid.NewGuid() + ".dll";
@@ -60,7 +61,7 @@ namespace DuckBot.Sandbox
                 CS obj = (CS)app.CreateInstanceAndUnwrap(typeof(CS).Assembly.FullName, typeof(CS).FullName);
                 using (StringWriter sw = new StringWriter())
                 {
-                    sw.WriteLine(obj.Remote(CultureInfo.CurrentCulture, sw, dll, msg.Args, msg.Sender, msg.Server, msg.Channel));
+                    sw.WriteLine(obj.Remote(CultureInfo.CurrentCulture, sw, dll, msg.Args, Proxy.GetProxy(msg.Sender), Proxy.GetProxy(msg.Server), Proxy.GetProxy(msg.Channel)));
                     string res = sw.ToString().Trim();
                     return res.Length == 0 ? Strings.ret_empty_script : res;
                 }
