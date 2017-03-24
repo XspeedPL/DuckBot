@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using DuckBot.Resources;
 using Discord;
@@ -79,7 +80,7 @@ namespace DuckBot
                 else return string.Format(Strings.err_nogeneric, Strings.lab_usercmd);
             }, string.Format("<{0}>", Strings.lab_cmd), true));
 
-            dict.Add("options", new HardCmd(1, 3, (args, msg) =>
+            dict.Add("options", new HardCmd(1, 2, (args, msg) =>
             {
                 string arg = args[0].ToLowerInvariant();
                 if (arg == "showchanges")
@@ -90,6 +91,12 @@ namespace DuckBot
                     else if (args[1] == "disable") msg.Session.ShowChanges = false;
                     else return Strings.err_nosubcmd;
                 }
+                else if (arg == "commandprefix")
+                {
+                    if (args.Length == 1 || string.IsNullOrWhiteSpace(args[1]))
+                        return FormatHelp("options commandprefix", string.Format("<{0}>", Strings.lab_prefix));
+                    else msg.Session.CommandPrefix = args[1];
+                }
                 else if (arg == "musicchannel")
                 {
                     if (args.Length == 1 || string.IsNullOrWhiteSpace(args[1]))
@@ -98,10 +105,10 @@ namespace DuckBot
                     {
                         bool found = false;
                         foreach (IVoiceChannel c in msg.Server.GetVoiceChannelsAsync().Result)
-                            if (c.Name == args[1])
+                            if (c.Name.Equals(args[1], StringComparison.OrdinalIgnoreCase))
                             {
                                 msg.Session.JoinAudio(c).Wait();
-                                msg.Session.MusicChannel = args[1];
+                                msg.Session.MusicChannel = c.Name;
                                 found = true;
                                 break;
                             }
@@ -215,8 +222,12 @@ namespace DuckBot
                 if (song != null)
                 {
                     msg.Channel.SendMessageAsync(result);
-                    msg.Session.PlayAudio(url);
-                    return "Song " + song + " finished.";
+                    Utils.RunAsync((arg) =>
+                    {
+                        msg.Session.PlayAudio(url);
+                        if (!Program.Inst.End) msg.Channel.SendMessageAsync("Song " + song + " finished.");
+                    }, 0, true);
+                    return null;
                 }
                 else return result;
             }, "<song-name>"));

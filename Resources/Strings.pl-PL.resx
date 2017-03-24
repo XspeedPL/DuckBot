@@ -180,6 +180,9 @@
   <data name="lab_optional" xml:space="preserve">
     <value>Opcjonalne</value>
   </data>
+  <data name="lab_prefix" xml:space="preserve">
+    <value>prefiks</value>
+  </data>
   <data name="lab_required" xml:space="preserve">
     <value>Wymagane</value>
   </data>

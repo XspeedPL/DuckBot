@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Net;
 using System.Web;
+using System.Text;
+using System.Collections.Generic;
 
 namespace DuckBot.Audio
 {
@@ -27,7 +26,7 @@ namespace DuckBot.Audio
                         if (res.Count > 1)
                         {
                             foreach (ResultItem item in res)
-                                item.diff = Utils.Similarity(song, item.Title);
+                                item.diff = Utils.Similarity(song, item.User + " " + item.Title);
                             res.Sort();
                             foreach (ResultItem item in res)
                             {
@@ -40,8 +39,9 @@ namespace DuckBot.Audio
                     catch (WebException)
                     {
                         System.Threading.Thread.Sleep(500);
-                        foreach (ResultItem ri in res)
-                            used.Remove(ri);
+                        if (res != null)
+                            foreach (ResultItem ri in res)
+                                used.Remove(ri);
                     }
                 return ("Track '" + song + "' not found!", null, null);
             }

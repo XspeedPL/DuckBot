@@ -20,7 +20,7 @@ namespace DuckBot.Audio
             end = false;
         }
 
-        private void ProcessStream(Stream input)
+        private async Task ProcessStream(Stream input)
         {
             byte[] buffer = new byte[1024 * 128];
             IMp3FrameDecompressor decompressor = null;
@@ -30,7 +30,7 @@ namespace DuckBot.Audio
                     do
                     {
                         if (buffWave != null && buffWave.BufferLength - buffWave.BufferedBytes < buffWave.WaveFormat.AverageBytesPerSecond / 4)
-                            Thread.Sleep(500);
+                            await Task.Delay(500);
                         else
                         {
                             Mp3Frame frame;
@@ -60,7 +60,7 @@ namespace DuckBot.Audio
         public async void Play(int channels, Stream source)
         {
             end = false;
-            Task download = Utils.RunAsync(ProcessStream, source);
+            Task download = ProcessStream(source);
             while (buffWave == null) Thread.Sleep(500);
             var format = new WaveFormat(48000, 16, channels);
             using (MediaFoundationResampler resampler = new MediaFoundationResampler(buffWave, format))
@@ -69,13 +69,14 @@ namespace DuckBot.Audio
                 int blockSize = format.AverageBytesPerSecond / 50;
                 byte[] buffer = new byte[blockSize];
                 int byteCount;
-                using (Stream output = AudioClient.CreatePCMStream(AudioApplication.Music, 1920))
-                    while (!end && (byteCount = resampler.Read(buffer, 0, blockSize)) > 0)
-                    {
-                        if (byteCount < blockSize)
-                            for (int i = byteCount; i < blockSize; ++i) buffer[i] = 0;
-                        output.Write(buffer, 0, buffer.Length);
-                    }
+                lock (this)
+                    using (Stream output = AudioClient.CreatePCMStream(AudioApplication.Music, 1920))
+                        while (!end && (byteCount = resampler.Read(buffer, 0, blockSize)) > 0)
+                        {
+                            if (byteCount < blockSize)
+                                for (int i = byteCount; i < blockSize; ++i) buffer[i] = 0;
+                            output.Write(buffer, 0, buffer.Length);
+                        }
             }
             await download;
             End();
@@ -84,7 +85,7 @@ namespace DuckBot.Audio
         public void End()
         {
             end = true;
-            buffWave = null;
+            lock (this) buffWave = null;
         }
 
         public void Dispose()

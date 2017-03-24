@@ -7,7 +7,7 @@ namespace DuckBot
 {
     public sealed class Session : System.IDisposable
     {
-        private static readonly int Version = 1;
+        private static readonly int Version = 2;
 
         public ulong ServerId { get; private set; }
         public Dictionary<string, SoftCmd> Cmds { get; private set; }
@@ -20,6 +20,7 @@ namespace DuckBot
         public string Language { get; private set; }
         public bool PendingSave { get; private set; }
         public string MusicChannel { get; internal set; }
+        public string CommandPrefix { get; internal set; }
 
         public int PersistentVars
         {
@@ -43,6 +44,7 @@ namespace DuckBot
             PendingSave = false;
             Language = "en-US";
             MusicChannel = "";
+            CommandPrefix = ">";
         }
 
         public void SetPending() { PendingSave = true; }
@@ -89,6 +91,7 @@ namespace DuckBot
                 }
                 Language = br.ReadString();
                 MusicChannel = ver >= 1 ? br.ReadString() : "";
+                CommandPrefix = ver >= 2 ? br.ReadString() : ">";
             }
         }
 
@@ -122,6 +125,7 @@ namespace DuckBot
                         }
                     bw.Write(Language);
                     bw.Write(MusicChannel);
+                    bw.Write(CommandPrefix);
                 }
         }
 
@@ -148,7 +152,7 @@ namespace DuckBot
         internal async Task AutoJoinAudio(Discord.IGuild srv)
         {
             foreach (Discord.IVoiceChannel c in await srv.GetVoiceChannelsAsync())
-                if (c.Name == MusicChannel)
+                if (c.Name.Equals(MusicChannel, System.StringComparison.OrdinalIgnoreCase))
                 {
                     await JoinAudio(c);
                     break;

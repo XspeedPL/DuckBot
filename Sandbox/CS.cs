@@ -18,7 +18,7 @@ namespace DuckBot.Sandbox
 
         private static string Compile(string content)
         {
-            const string template = "using System;using System.Net;using System.Collections.Generic;using Discord;namespace DuckBot {public static class Script {public static string Code(string rawText,IGuildUser sender,IGuild server,ITextChannel channel){\n";
+            const string template = "using System;using System.Net;using System.Collections.Generic;using Discord;namespace DuckBot {public static class Script {public static string Code(string rawText,dynamic sender,dynamic server,dynamic channel){\n";
             string source = template + content + "}}}";
             using (CodeDomProvider compiler = CodeDomProvider.CreateProvider("CSharp"))
             {
@@ -40,6 +40,9 @@ namespace DuckBot.Sandbox
                 }
             }
         }
+
+        /// <summary>Added just to reference dynamic types, useless</summary>
+        public static dynamic DynRef(dynamic arg) { return arg.ToString(); }
 
         internal static string Execute(string content, CmdContext msg)
         {

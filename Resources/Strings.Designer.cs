@@ -250,6 +250,15 @@ namespace DuckBot.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to prefix.
+        /// </summary>
+        internal static string lab_prefix {
+            get {
+                return ResourceManager.GetString("lab_prefix", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Required.
         /// </summary>
         internal static string lab_required {

@@ -8,9 +8,9 @@ namespace DuckBot
 {
     public static class Utils
     {
-        public static Task RunAsync<T>(Action<T> func, T arg)
+        public static Task RunAsync<T>(Action<T> func, T arg, bool longRunning = false)
         {
-            return Task.Run(() => func(arg));
+            return Task.Factory.StartNew(() => func(arg), longRunning ? TaskCreationOptions.LongRunning : TaskCreationOptions.DenyChildAttach);
         }
 
         public static string StartCase(this string data)

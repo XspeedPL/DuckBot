@@ -17,11 +17,11 @@ namespace DuckBot
         private readonly Dictionary<string, HardCmd> hardCmds;
         private readonly Discord.WebSocket.DiscordSocketClient client;
         private readonly DuckData data;
-        private readonly string token, prefix;
+        private readonly string token;
         private readonly Task bgSaver;
         private readonly CancellationTokenSource bgCancel;
 
-        private bool end;
+        public bool End { get; private set; }
         
         static void Main()
         {
@@ -31,9 +31,7 @@ namespace DuckBot
             else
             {
                 string token = File.ReadAllText(DuckData.TokenFile.FullName, System.Text.Encoding.UTF8);
-                int ix = token.IndexOf(' ');
-                if (ix < 1) Log(LogSeverity.Error, Strings.start_err_badtoken);
-                else using (Inst = new Program(token.Substring(ix + 1), token.Remove(ix)))
+                using (Inst = new Program(token))
                 {
                     Inst.LoadData();
                     Inst.Start();
@@ -41,9 +39,9 @@ namespace DuckBot
             }
         }
 
-        private Program(string userToken, string cmdPrefix)
+        private Program(string userToken)
         {
-            end = false;
+            End = false;
             client = new Discord.WebSocket.DiscordSocketClient(new Discord.WebSocket.DiscordSocketConfig()
             {
                 DefaultRetryMode = RetryMode.AlwaysRetry,
@@ -51,7 +49,6 @@ namespace DuckBot
             });
             client.Log += Log;
             token = userToken;
-            prefix = cmdPrefix;
             data = new DuckData();
             hardCmds = HardCmd.CreateDefault();
             bgCancel = new CancellationTokenSource();
@@ -131,12 +128,12 @@ namespace DuckBot
             };
             client.LoginAsync(TokenType.Bot, token).Wait();
             client.StartAsync();
-            while (!end) Thread.Sleep(666);
+            while (!End) Thread.Sleep(666);
         }
 
         private void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
         {
-            end = true;
+            End = true;
             e.Cancel = true;
         }
 
@@ -190,14 +187,14 @@ namespace DuckBot
         
         private Task MessageRecieved(IMessage msg)
         {
-            if (msg.Content.StartsWith(prefix) && msg.Author.Id != client.CurrentUser.Id)
+            Session ss = CreateSession(((IGuildChannel)msg.Channel).Guild);
+            if (msg.Author.Id != client.CurrentUser.Id && msg.Content.StartsWith(ss.CommandPrefix))
                 Task.Run(async () =>
                 {
-                    string cmd = msg.Content.Substring(1);
+                    string cmd = msg.Content.Substring(ss.CommandPrefix.Length);
                     int ix = cmd.IndexOf(' ');
                     if (ix != -1) cmd = cmd.Remove(ix);
                     cmd = cmd.ToLowerInvariant();
-                    Session ss = CreateSession(((IGuildChannel)msg.Channel).Guild);
                     Thread.CurrentThread.CurrentCulture = new CultureInfo(ss.Language);
                     Thread.CurrentThread.CurrentUICulture = CultureInfo.CurrentCulture;
                     CultureInfo.DefaultThreadCurrentCulture = CultureInfo.CurrentCulture;
@@ -217,7 +214,8 @@ namespace DuckBot
                                 {
                                     await msg.Channel.TriggerTypingAsync();
                                     string res = hcmd.Func(args, new CmdContext(msg, ss));
-                                    await msg.Channel.SendMessageAsync(string.IsNullOrWhiteSpace(res) ? Strings.ret_empty_cmd : res);
+                                    if (res != null)
+                                        await msg.Channel.SendMessageAsync(string.IsNullOrWhiteSpace(res) ? Strings.ret_empty_cmd : res);
                                 }
                                 else await msg.Channel.SendMessageAsync(Strings.err_params);
                             }
@@ -226,7 +224,8 @@ namespace DuckBot
                         {
                             await msg.Channel.TriggerTypingAsync();
                             string res = ss.Cmds[cmd].Run(new CmdContext(msg, ss));
-                            await msg.Channel.SendMessageAsync(string.IsNullOrWhiteSpace(res) ? Strings.ret_empty_cmd : res);
+                            if (res != null)
+                                await msg.Channel.SendMessageAsync(string.IsNullOrWhiteSpace(res) ? Strings.ret_empty_cmd : res);
                         }
                     }
                     catch (Exception ex)
@@ -264,7 +263,7 @@ namespace DuckBot
         {
             if (!string.IsNullOrWhiteSpace(user))
                 foreach (IGuildUser u in srv.GetUsersAsync().Result)
-                    if (u.Username == user || u.Mention == user)
+                    if (u.Username.Equals(user, StringComparison.OrdinalIgnoreCase) || u.Mention == user)
                         return u;
             return null;
         }
