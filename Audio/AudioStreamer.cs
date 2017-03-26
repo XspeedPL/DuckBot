@@ -41,7 +41,7 @@ namespace DuckBot.Audio
                             {
                                 decompressor = new AcmMp3FrameDecompressor(new Mp3WaveFormat(frame.SampleRate, frame.ChannelMode == ChannelMode.Mono ? 1 : 2, frame.FrameLength, frame.BitRate));
                                 buffWave = new BufferedWaveProvider(decompressor.OutputFormat);
-                                buffWave.BufferDuration = TimeSpan.FromSeconds(10);
+                                buffWave.BufferDuration = TimeSpan.FromSeconds(7);
                                 buffWave.ReadFully = false;
                             }
                             int decompressed = decompressor.DecompressFrame(frame, buffer, 0);
@@ -62,22 +62,18 @@ namespace DuckBot.Audio
             end = false;
             Task download = ProcessStream(source);
             while (buffWave == null) Thread.Sleep(500);
-            var format = new WaveFormat(48000, 16, channels);
-            using (MediaFoundationResampler resampler = new MediaFoundationResampler(buffWave, format))
-            {
-                resampler.ResamplerQuality = 60;
-                int blockSize = format.AverageBytesPerSecond / 50;
-                byte[] buffer = new byte[blockSize];
-                int byteCount;
-                lock (this)
-                    using (Stream output = AudioClient.CreatePCMStream(AudioApplication.Music, 1920))
-                        while (!end && (byteCount = resampler.Read(buffer, 0, blockSize)) > 0)
-                        {
-                            if (byteCount < blockSize)
-                                for (int i = byteCount; i < blockSize; ++i) buffer[i] = 0;
-                            output.Write(buffer, 0, buffer.Length);
-                        }
-            }
+            WaveFormat format = buffWave.WaveFormat;
+            int blockSize = format.AverageBytesPerSecond / 50;
+            byte[] buffer = new byte[blockSize];
+            int byteCount;
+            lock (this)
+                using (Stream output = AudioClient.CreatePCMStream(AudioApplication.Music, 1920, format.Channels, format.SampleRate))
+                    while (!end && (byteCount = buffWave.Read(buffer, 0, blockSize)) > 0)
+                    {
+                        if (byteCount < blockSize)
+                            for (int i = byteCount; i < blockSize; ++i) buffer[i] = 0;
+                        output.Write(buffer, 0, buffer.Length);
+                    }
             await download;
             End();
         }

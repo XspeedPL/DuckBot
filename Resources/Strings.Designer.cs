@@ -106,6 +106,15 @@ namespace DuckBot.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Song `{0}` not found!.
+        /// </summary>
+        internal static string err_nosong {
+            get {
+                return ResourceManager.GetString("err_nosong", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unknown subcommand specified..
         /// </summary>
         internal static string err_nosubcmd {
@@ -375,6 +384,24 @@ namespace DuckBot.Resources {
         internal static string ret_removed {
             get {
                 return ResourceManager.GetString("ret_removed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Found song `{0}`.
+        /// </summary>
+        internal static string ret_song {
+            get {
+                return ResourceManager.GetString("ret_song", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Song `{0}`  finished..
+        /// </summary>
+        internal static string ret_songend {
+            get {
+                return ResourceManager.GetString("ret_songend", resourceCulture);
             }
         }
         

@@ -32,7 +32,7 @@ namespace DuckBot.Audio
                             {
                                 if (used.Contains(item)) continue;
                                 else used.AddLast(item);
-                                return ("Found '" + item.Title + "'", item.Title, item.URL + "?" + CLIENT_ID);
+                                return (string.Format(Resources.Strings.ret_song, item.Title), item.Title, item.URL + "?" + CLIENT_ID);
                             }
                         }
                     }
@@ -43,7 +43,7 @@ namespace DuckBot.Audio
                             foreach (ResultItem ri in res)
                                 used.Remove(ri);
                     }
-                return ("Track '" + song + "' not found!", null, null);
+                return (string.Format(Resources.Strings.err_nosong, song), null, null);
             }
         }
 

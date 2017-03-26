@@ -132,6 +132,9 @@
   <data name="err_nolanguage" xml:space="preserve">
     <value>Język z podanym kodem nie jest dostępny.</value>
   </data>
+  <data name="err_nosong" xml:space="preserve">
+    <value>Nie znaleziono piosenki `{0}`!</value>
+  </data>
   <data name="err_nosubcmd" xml:space="preserve">
     <value>Podano nieznaną podkomendę.</value>
   </data>
@@ -224,6 +227,12 @@ Utworzona: `{1}` przez `{2}`</value>
   </data>
   <data name="ret_removed" xml:space="preserve">
     <value>Usunięto: {0} `{1}`.</value>
+  </data>
+  <data name="ret_song" xml:space="preserve">
+    <value>Znaleziono piosenkę `{0}`</value>
+  </data>
+  <data name="ret_songend" xml:space="preserve">
+    <value>Piosenka `{0}` skończyła się</value>
   </data>
   <data name="ret_success" xml:space="preserve">
     <value>Operacja ukończona.</value>

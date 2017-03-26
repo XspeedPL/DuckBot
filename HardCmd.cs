@@ -225,7 +225,7 @@ namespace DuckBot
                     Utils.RunAsync((arg) =>
                     {
                         msg.Session.PlayAudio(url);
-                        if (!Program.Inst.End) msg.Channel.SendMessageAsync("Song " + song + " finished.");
+                        if (!Program.Inst.End) msg.Channel.SendMessageAsync(string.Format(Strings.ret_songend, song));
                     }, 0, true);
                     return null;
                 }

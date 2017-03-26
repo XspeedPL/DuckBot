@@ -132,6 +132,9 @@
   <data name="err_nolanguage" xml:space="preserve">
     <value>Language with specified code isn't available.</value>
   </data>
+  <data name="err_nosong" xml:space="preserve">
+    <value>Song `{0}` not found!</value>
+  </data>
   <data name="err_nosubcmd" xml:space="preserve">
     <value>Unknown subcommand specified.</value>
   </data>
@@ -224,6 +227,12 @@ Created: `{1}` by `{2}`</value>
   </data>
   <data name="ret_removed" xml:space="preserve">
     <value>Removed {0} `{1}`.</value>
+  </data>
+  <data name="ret_song" xml:space="preserve">
+    <value>Found song `{0}`</value>
+  </data>
+  <data name="ret_songend" xml:space="preserve">
+    <value>Song `{0}`  finished.</value>
   </data>
   <data name="ret_success" xml:space="preserve">
     <value>Operation completed.</value>
