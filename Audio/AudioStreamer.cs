@@ -61,19 +61,23 @@ namespace DuckBot.Audio
         {
             end = false;
             Task download = ProcessStream(source);
-            while (buffWave == null) Thread.Sleep(500);
-            WaveFormat format = buffWave.WaveFormat;
-            int blockSize = format.AverageBytesPerSecond / 50;
-            byte[] buffer = new byte[blockSize];
-            int byteCount;
-            lock (this)
-                using (Stream output = AudioClient.CreatePCMStream(AudioApplication.Music, 1920, format.Channels, format.SampleRate))
-                    while (!end && (byteCount = buffWave.Read(buffer, 0, blockSize)) > 0)
-                    {
-                        if (byteCount < blockSize)
-                            for (int i = byteCount; i < blockSize; ++i) buffer[i] = 0;
-                        output.Write(buffer, 0, buffer.Length);
-                    }
+            while (buffWave == null) await Task.Delay(500);
+            WaveFormat format = new WaveFormat(buffWave.WaveFormat.SampleRate, 16, channels);
+            using (MediaFoundationResampler resampler = new MediaFoundationResampler(buffWave, format))
+            {
+                resampler.ResamplerQuality = 60;
+                int blockSize = format.AverageBytesPerSecond / 50;
+                byte[] buffer = new byte[blockSize];
+                int byteCount;
+                lock (this)
+                    using (Stream output = AudioClient.CreatePCMStream(AudioApplication.Music, 1920, format.Channels))
+                        while (!end && (byteCount = resampler.Read(buffer, 0, blockSize)) > 0)
+                        {
+                            if (byteCount < blockSize)
+                                for (int i = byteCount; i < blockSize; ++i) buffer[i] = 0;
+                            output.Write(buffer, 0, buffer.Length);
+                        }
+            }
             await download;
             End();
         }

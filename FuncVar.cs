@@ -138,6 +138,18 @@ namespace DuckBot
                 return args.Length >= 2 ? args[0].IndexOf(args[1]).ToString() : "ERROR";
             });
 
+            dict.Add("replace", (args, msg) =>
+            {
+                return args.Length >= 2 ? args[0].Replace(args[1], args.Length >= 3 ? args[2] : "") : "ERROR";
+            });
+
+            dict.Add("calc", (args, msg) =>
+            {
+                if (args.Length < 1) return "ERROR";
+                using (System.Data.DataTable dt = new System.Data.DataTable())
+                    return dt.Compute(args[0], "").ToString();
+            });
+
             return dict;
         }
 
