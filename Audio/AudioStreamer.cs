@@ -51,10 +51,7 @@ namespace DuckBot.Audio
                     while (!end);
             }
             catch (IOException ex) { Program.Log(ex); }
-            finally
-            {
-                if (decompressor != null) decompressor.Dispose();
-            }
+            finally { if (decompressor != null) decompressor.Dispose(); }
         }
 
         public async void Play(int channels, Stream source)

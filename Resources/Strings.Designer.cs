@@ -178,6 +178,20 @@ namespace DuckBot.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Bot written by: **Xspeed** and **EchoDuck**
+        ///*Credits:*
+        /// Discord.Net - RogueException
+        /// Castle.Core - Castle Project Team
+        /// NAudio - Mark Heath
+        /// NLua - Vinicius Jarina.
+        /// </summary>
+        internal static string info_credits {
+            get {
+                return ResourceManager.GetString("info_credits", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to action.
         /// </summary>
         internal static string lab_action {

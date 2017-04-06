@@ -156,6 +156,15 @@
   <data name="exit_start" xml:space="preserve">
     <value>Shutting down DuckBot...</value>
   </data>
+  <data name="info_credits" xml:space="preserve">
+    <value>Bot written by: **Xspeed** and **EchoDuck**
+*Credits:*
+ Discord.Net - RogueException
+ Castle.Core - Castle Project Team
+ NAudio - Mark Heath
+ NLua - Vinicius Jarina</value>
+    <comment>Keep the formatting!</comment>
+  </data>
   <data name="lab_action" xml:space="preserve">
     <value>action</value>
   </data>

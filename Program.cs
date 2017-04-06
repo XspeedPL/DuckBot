@@ -14,12 +14,14 @@ namespace DuckBot
         public static readonly Random Rand = new Random();
         internal static Program Inst = null;
 
-        private readonly Dictionary<string, HardCmd> hardCmds;
         private readonly Discord.WebSocket.DiscordSocketClient client;
         private readonly DuckData data;
         private readonly string token;
         private readonly Task bgSaver;
         private readonly CancellationTokenSource bgCancel;
+        private readonly StreamWriter log;
+
+        internal Dictionary<string, HardCmd> HardCmds { get; private set; }
 
         public bool End { get; private set; }
         
@@ -27,7 +29,7 @@ namespace DuckBot
         {
             Console.Title = "DuckBot";
             if (!DuckData.LogFile.Exists) File.WriteAllText(DuckData.LogFile.FullName, "");
-            if (!DuckData.TokenFile.Exists) Log(LogSeverity.Error, Strings.start_err_notoken);
+            if (!DuckData.TokenFile.Exists) Log(new FileNotFoundException(Strings.start_err_notoken));
             else
             {
                 string token = File.ReadAllText(DuckData.TokenFile.FullName, System.Text.Encoding.UTF8);
@@ -42,6 +44,7 @@ namespace DuckBot
         private Program(string userToken)
         {
             End = false;
+            log = DuckData.LogFile.AppendText();
             client = new Discord.WebSocket.DiscordSocketClient(new Discord.WebSocket.DiscordSocketConfig()
             {
                 DefaultRetryMode = RetryMode.AlwaysRetry,
@@ -50,7 +53,7 @@ namespace DuckBot
             client.Log += Log;
             token = userToken;
             data = new DuckData();
-            hardCmds = HardCmd.CreateDefault();
+            HardCmds = HardCmd.CreateDefault();
             bgCancel = new CancellationTokenSource();
             bgSaver = Task.Run(AsyncSaver);
         }
@@ -87,6 +90,7 @@ namespace DuckBot
             bgSaver.Dispose();
             bgCancel.Dispose();
             Log(LogSeverity.Info, Strings.exit_end);
+            log.Close();
         }
         
         private void LoadData()
@@ -137,10 +141,7 @@ namespace DuckBot
             e.Cancel = true;
         }
 
-        internal bool IsAdvancedUser(ulong id)
-        {
-            lock (data.AdvancedUsers) return data.AdvancedUsers.Contains(id);
-        }
+        internal bool IsAdvancedUser(ulong id) => data.AdvancedUsers.Contains(id);
 
         internal void AddAdvancedUser(ulong id)
         {
@@ -201,9 +202,9 @@ namespace DuckBot
                     CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.CurrentCulture;
                     try
                     {
-                        if (hardCmds.ContainsKey(cmd))
+                        if (HardCmds.ContainsKey(cmd))
                         {
-                            HardCmd hcmd = hardCmds[cmd];
+                            HardCmd hcmd = HardCmds[cmd];
                             IGuildUser guser = (IGuildUser)msg.Author;
                             if (hcmd.AdminOnly && (!guser.GuildPermissions.Administrator || msg.Author.IsBot) && !data.AdvancedUsers.Contains(msg.Author.Id))
                                 await msg.Channel.SendMessageAsync(Strings.err_notadmin);
@@ -237,35 +238,21 @@ namespace DuckBot
             return Task.CompletedTask;
         }
 
-        public static Task Log(LogMessage e)
-        {
-            Log(e.Severity, "[" + e.Source + "] " + e.Message);
-            return Task.CompletedTask;
-        }
+        public static Task Log(LogMessage e) => Task.Run(() => Inst.Log(e.Severity, "[" + e.Source + "] " + e.Message));
 
         public static void Log(Exception ex)
         {
-            Log(LogSeverity.Error, ex + "\n");
+            Inst.Log(LogSeverity.Error, ex + "\n");
         }
 
-        public static void Log(LogSeverity severity, string text)
+        public void Log(LogSeverity severity, string text)
         {
             text = "[" + DateTime.UtcNow.ToShortTimeString() + "] [" + severity + "] " + text;
-            lock (Rand)
+            lock (log)
             {
-                using (StreamWriter sw = DuckData.LogFile.AppendText())
-                    sw.WriteLine(text);
+                log.WriteLine(text);
                 Console.WriteLine(text);
             }
-        }
-
-        public static IGuildUser FindUser(IGuild srv, string user)
-        {
-            if (!string.IsNullOrWhiteSpace(user))
-                foreach (IGuildUser u in srv.GetUsersAsync().Result)
-                    if (u.Username.Equals(user, StringComparison.OrdinalIgnoreCase) || u.Mention == user)
-                        return u;
-            return null;
         }
     }
 }

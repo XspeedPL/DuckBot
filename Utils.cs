@@ -8,16 +8,11 @@ namespace DuckBot
 {
     public static class Utils
     {
-        public static Task RunAsync<T>(Action<T> func, T arg, bool longRunning = false)
-        {
-            return Task.Factory.StartNew(() => func(arg), longRunning ? TaskCreationOptions.LongRunning : TaskCreationOptions.DenyChildAttach);
-        }
-
-        public static string StartCase(this string data)
-        {
-            return data == null ? null : char.ToUpper(data[0]) + data.Substring(1);
-        }
-
+        public static Task RunAsync<T>(Action<T> func, T arg, bool longRunning = false) =>
+            Task.Factory.StartNew(() => func(arg), longRunning ? TaskCreationOptions.LongRunning : TaskCreationOptions.DenyChildAttach);
+        
+        public static string StartCase(this string data) => data == null ? null : char.ToUpper(data[0]) + data.Substring(1);
+        
         public static bool IsCultureAvailable(string langCode)
         {
             CultureInfo ci = null;
@@ -34,7 +29,16 @@ namespace DuckBot
             finally { rm.ReleaseAllResources(); }
         }
 
-        public static bool UserActive(this IPresence user) { return user != null && (user.Status == UserStatus.Online || user.Status == UserStatus.DoNotDisturb); }
+        public static IGuildUser FindUser(this IGuild srv, string user)
+        {
+            if (!string.IsNullOrWhiteSpace(user))
+                foreach (IGuildUser u in srv.GetUsersAsync().GetAwaiter().GetResult())
+                    if (u.Username.Equals(user, StringComparison.OrdinalIgnoreCase) || u.Mention == user)
+                        return u;
+            return null;
+        }
+
+        public static bool UserActive(this IPresence user) => user != null && (user.Status == UserStatus.Online || user.Status == UserStatus.DoNotDisturb);
 
         public static int Similarity(string data1, string data2)
         {

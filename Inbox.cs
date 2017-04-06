@@ -55,7 +55,7 @@ namespace DuckBot
             lock (this)
                 foreach (KeyValuePair<ulong, string[]> kvp in queue)
                 {
-                    string sender = srv.GetUserAsync(kvp.Key).Result.Username;
+                    string sender = srv.GetUserAsync(kvp.Key).GetAwaiter().GetResult().Username;
                     string msg = string.Format(Resources.Strings.title_inbox, sender);
                     for (int i = 0; i < 5; ++i)
                     {

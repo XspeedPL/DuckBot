@@ -30,7 +30,7 @@ namespace DuckBot.Audio
 
         public override void Flush() { }
 
-        public override long Seek(long offset, SeekOrigin origin) { return position; }
+        public override long Seek(long offset, SeekOrigin origin) => position;
 
         public override void Write(byte[] buffer, int offset, int count) { }
 

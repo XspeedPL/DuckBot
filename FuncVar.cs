@@ -7,161 +7,111 @@ namespace DuckBot
 
     public static class FuncVar
     {
-        private static Dictionary<string, CmdHandler> vars = CreateDefault();
-
-        private static Dictionary<string, CmdHandler> CreateDefault()
+        private static Dictionary<string, CmdHandler> vars = new Dictionary<string, CmdHandler>
         {
-            Dictionary<string, CmdHandler> dict = new Dictionary<string, CmdHandler>();
-
-            dict.Add("user", (args, msg) => { return msg.Sender.Username; });
-
-            dict.Add("nickOrUser", (args, msg) =>
-            {
-                return string.IsNullOrWhiteSpace(msg.Sender.Nickname) ? msg.Sender.Username : msg.Sender.Nickname;
-            });
-
-            dict.Add("input", (args, msg) =>
-            {
-                if (args.Length >= 1)
+            { "user", (args, msg) => msg.Sender.Username },
+            { "nickOrUser", (args, msg) => string.IsNullOrWhiteSpace(msg.Sender.Nickname) ? msg.Sender.Username : msg.Sender.Nickname },
+            { "input", (args, msg) =>
+                {
+                    if (args.Length >= 1)
+                        try
+                        {
+                            int ix = int.Parse(args[0]);
+                            return SoftCmd.Escape(msg.Args.Split(' ')[ix]);
+                        }
+                        catch (FormatException) { return "ERROR"; }
+                    return SoftCmd.Escape(msg.Args);
+                }
+            },
+            { "mention", (args, msg) =>
+                {
+                    if (args.Length >= 1)
+                    {
+                        Discord.IUser u = msg.Server.FindUser(args[0]);
+                        return u == null ? "ERROR" : u.Mention;
+                    }
+                    else return msg.Sender.Mention;
+                }
+            },
+            { "rand", (args, msg) =>
+                {
                     try
                     {
-                        int ix = int.Parse(args[0]);
-                        return SoftCmd.Escape(msg.Args.Split(' ')[ix]);
+                        int i1 = int.Parse(args[0]);
+                        if (args.Length >= 2)
+                            return (Program.Rand.Next(int.Parse(args[1]) - i1) + i1).ToString();
+                        else return Program.Rand.Next(i1).ToString();
                     }
                     catch (FormatException) { return "ERROR"; }
-                return SoftCmd.Escape(msg.Args);
-            });
-
-            dict.Add("mention", (args, msg) =>
-            {
-                if (args.Length >= 1)
-                {
-                    Discord.IUser u = Program.FindUser(msg.Server, args[0]);
-                    return u == null ? "ERROR" : u.Mention;
                 }
-                else return msg.Sender.Mention;
-            });
-
-            dict.Add("rand", (args, msg) =>
-            {
-                try
+            },
+            { "command", (args, msg) =>
                 {
-                    int i1 = int.Parse(args[0]);
-                    if (args.Length >= 2)
-                        return (Program.Rand.Next(int.Parse(args[1]) - i1) + i1).ToString();
-                    else return Program.Rand.Next(i1).ToString();
-                }
-                catch (FormatException) { return "ERROR"; }
-            });
-
-            dict.Add("command", (args, msg) =>
-            {
-                if (args.Length >= 1)
-                {
-                    Session s = msg.Session;
-                    SoftCmd c;
-                    lock (s) c = s.Cmds.ContainsKey(args[0]) ? s.Cmds[args[0]] : null;
-                    if (c != null) return c.Run(new CmdContext(msg, args.Length >= 2 ? args[1] : ""));
-                }
-                return "ERROR";
-            });
-
-            dict.Add("if", (args, msg) =>
-            {
-                if (args.Length >= 3)
-                    return args[0].Length == args[1].Length ? args[2] : args[3];
-                else return "ERROR";
-            });
-
-            dict.Add("length", (args, msg) =>
-            {
-                return args.Length >= 1 ? args[0].Length.ToString() : "ERROR";
-            });
-
-            dict.Add("substr", (args, msg) =>
-            {
-                try
-                {
-                    string s = args[0];
-                    int i1 = int.Parse(args[1]);
-                    if (args.Length >= 3)
+                    if (args.Length >= 1)
                     {
-                        int i2 = int.Parse(args[2]);
-                        return s.Substring(i1 >= 0 ? i1 : s.Length + i1, i2);
+                        Session s = msg.Session;
+                        SoftCmd c;
+                        lock (s) c = s.Cmds.ContainsKey(args[0]) ? s.Cmds[args[0]] : null;
+                        if (c != null) return c.Run(new CmdContext(msg, args.Length >= 2 ? args[1] : ""));
                     }
-                    else return s.Substring(i1 >= 0 ? i1 : s.Length + i1);
+                    return "ERROR";
                 }
-                catch (FormatException) { return "ERROR"; }
-            });
-
-            dict.Add("date", (args, msg) =>
-            {
-                if (args.Length >= 1) return DateTime.UtcNow.ToString(args[0]);
-                else return DateTime.UtcNow.ToShortDateString();
-            });
-
-            dict.Add("time", (args, msg) =>
-            {
-                if (args.Length >= 1 && args[0] == "long") return DateTime.UtcNow.ToLongTimeString();
-                else return DateTime.UtcNow.ToShortTimeString();
-            });
-
-            dict.Add("get", (args, msg) =>
-            {
-                Session s = msg.Session;
-                lock (s)
-                    return args.Length >= 1 && s.Vars.ContainsKey(args[0]) ? s.Vars[args[0]] : "ERROR";
-            });
-
-            dict.Add("set", (args, msg) =>
-            {
-                if (args.Length >= 2)
+            },
+            { "if", (args, msg) => args.Length >= 3 ? (args[0].Length == args[1].Length ? args[2] : args[3]) : "ERROR" },
+            { "length", (args, msg) => args.Length >= 1 ? args[0].Length.ToString() : "ERROR" },
+            { "substr", (args, msg) =>
+                {
+                    try
+                    {
+                        string s = args[0];
+                        int i1 = int.Parse(args[1]);
+                        if (args.Length >= 3)
+                        {
+                            int i2 = int.Parse(args[2]);
+                            return s.Substring(i1 >= 0 ? i1 : s.Length + i1, i2);
+                        }
+                        else return s.Substring(i1 >= 0 ? i1 : s.Length + i1);
+                    }
+                    catch (FormatException) { return "ERROR"; }
+                }
+            },
+            { "date", (args, msg) => args.Length >= 1 ? DateTime.UtcNow.ToString(args[0]) : DateTime.UtcNow.ToShortDateString() },
+            { "time", (args, msg) => args.Length >= 1 && args[0] == "long" ? DateTime.UtcNow.ToLongTimeString() : DateTime.UtcNow.ToShortTimeString() },
+            { "get", (args, msg) =>
                 {
                     Session s = msg.Session;
-                    lock (s)
-                        if (s.Vars.ContainsKey(args[0])) s.Vars[args[0]] = args[1];
-                        else s.Vars.Add(args[0], args[1]);
-                    s.SetPending();
-                    return "";
+                    lock (s) return args.Length >= 1 && s.Vars.ContainsKey(args[0]) ? s.Vars[args[0]] : "ERROR";
                 }
-                else return "ERROR";
-            });
+            },
+            { "set", (args, msg) =>
+                {
+                    if (args.Length >= 2)
+                    {
+                        Session s = msg.Session;
+                        lock (s)
+                            if (s.Vars.ContainsKey(args[0])) s.Vars[args[0]] = args[1];
+                            else s.Vars.Add(args[0], args[1]);
+                        s.SetPending();
+                        return "";
+                    }
+                    else return "ERROR";
+                }
+            },
+            { "eval", (args, msg) => SoftCmd.CmdEngine(SoftCmd.Unescape(string.Join(",", args)), msg) },
+            { "find", (args, msg) => args.Length >= 2 ? args[0].IndexOf(args[1]).ToString() : "ERROR" },
+            { "replace", (args, msg) => args.Length >= 2 ? args[0].Replace(args[1], args.Length >= 3 ? args[2] : "") : "ERROR" },
+            { "calc", (args, msg) =>
+                {
+                    if (args.Length < 1) return "ERROR";
+                    using (System.Data.DataTable dt = new System.Data.DataTable())
+                        return dt.Compute(args[0], "").ToString();
+                }
+            }
+        };
 
-            dict.Add("eval", (args, msg) =>
-            {
-                string func = SoftCmd.Unescape(string.Join(",", args));
-                return SoftCmd.CmdEngine(func, msg);
-            });
+        public static bool Exists(string name) => vars.ContainsKey(name);
 
-            dict.Add("find", (args, msg) =>
-            {
-                return args.Length >= 2 ? args[0].IndexOf(args[1]).ToString() : "ERROR";
-            });
-
-            dict.Add("replace", (args, msg) =>
-            {
-                return args.Length >= 2 ? args[0].Replace(args[1], args.Length >= 3 ? args[2] : "") : "ERROR";
-            });
-
-            dict.Add("calc", (args, msg) =>
-            {
-                if (args.Length < 1) return "ERROR";
-                using (System.Data.DataTable dt = new System.Data.DataTable())
-                    return dt.Compute(args[0], "").ToString();
-            });
-
-            return dict;
-        }
-
-        public static bool Exists(string name)
-        {
-            return vars.ContainsKey(name);
-        }
-
-        public static string Run(string name, string[] args, CmdContext ctx)
-        {
-            return vars[name](args, ctx);
-        }
+        public static string Run(string name, string[] args, CmdContext ctx) => vars[name](args, ctx);
 
         public static bool Register(string name, CmdHandler action)
         {

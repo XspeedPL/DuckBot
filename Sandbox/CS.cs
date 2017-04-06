@@ -42,7 +42,7 @@ namespace DuckBot.Sandbox
         }
 
         /// <summary>Added just to reference dynamic types, useless</summary>
-        public static dynamic DynRef(dynamic arg) { return arg.ToString(); }
+        public static dynamic DynRef(dynamic arg) => arg.ToString();
 
         internal static string Execute(string content, CmdContext msg)
         {
@@ -86,7 +86,7 @@ namespace DuckBot.Sandbox
             Assembly script = Assembly.LoadFrom(assembly);
             MethodInfo method = script.GetType("DuckBot.Script").GetMethod("Code");
             Task<string> task = Task.Run(() => (string)method.Invoke(null, new object[] { args, sender, server, channel }));
-            return task.Wait(90000) ? task.Result : Strings.err_scrtimeout;
+            return task.Wait(90000) ? task.GetAwaiter().GetResult() : Strings.err_scrtimeout;
         }
     }
 }

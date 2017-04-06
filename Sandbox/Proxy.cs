@@ -8,8 +8,7 @@ namespace DuckBot.Sandbox
         public static T GetProxy<T>(T instance)
         {
             Type retType = typeof(T);
-            if (!retType.IsInterface)
-                throw new ArgumentException("Type must be an interface");
+            if (!retType.IsInterface) throw new ArgumentException("Type must be an interface");
             ProxyGenerator generator = new ProxyGenerator();
             ProxyGenerationOptions options = new ProxyGenerationOptions();
             options.BaseTypeForInterfaceProxy = typeof(MarshalByRefObject);

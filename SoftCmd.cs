@@ -103,11 +103,7 @@ namespace DuckBot
             return data;
         }
 
-        public static string CmdEngine(string content, CmdContext context)
-        {
-            string ret = CmdEngine(content, context, 0);
-            return Unescape(ret);
-        }
+        public static string CmdEngine(string content, CmdContext context) => Unescape(CmdEngine(content, context, 0));
 
         private static string CmdEngine(string content, CmdContext context, int depth)
         {
