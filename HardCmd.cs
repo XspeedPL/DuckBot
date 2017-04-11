@@ -105,7 +105,7 @@ namespace DuckBot
                             foreach (IVoiceChannel c in msg.Server.GetVoiceChannelsAsync().GetAwaiter().GetResult())
                                 if (c.Name.Equals(args[1], StringComparison.OrdinalIgnoreCase))
                                 {
-                                    msg.Session.JoinAudio(c).Wait();
+                                    msg.Session.JoinAudioAsync(c).Wait();
                                     msg.Session.MusicChannel = c.Name;
                                     found = true;
                                     break;
@@ -221,11 +221,16 @@ namespace DuckBot
                     if (song != null)
                     {
                         msg.Channel.SendMessageAsync(result);
-                        Utils.RunAsync((arg) =>
+                        msg.Session.PlayAudioAsync(url).ContinueWith((t) =>
                         {
-                            msg.Session.PlayAudio(url);
-                            if (!Program.Inst.End) msg.Channel.SendMessageAsync(string.Format(Strings.ret_songend, song));
-                        }, 0, true);
+                            if (!Program.Inst.End)
+                            {
+                                string send;
+                                if (t.IsFaulted) send = Strings.err_generic + ' ' + t.Exception.Message;
+                                else send = string.Format(Strings.ret_songend, song);
+                                msg.Channel.SendMessageAsync(send);
+                            }
+                        });
                         return null;
                     }
                     else return result;
@@ -234,7 +239,7 @@ namespace DuckBot
             { "stopsong", new HardCmd(0, 1, (args, msg) =>
                 {
                     if (msg.Session.AudioPlayer == null) return Strings.err_generic;
-                    else msg.Session.AudioPlayer.End();
+                    else msg.Session.AudioPlayer.StopAsync().GetAwaiter().GetResult();
                     return Strings.ret_success;
                 }, "")
             },

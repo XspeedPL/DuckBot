@@ -142,28 +142,36 @@ namespace DuckBot
             return i.AddMessage(sender, message);
         }
 
-        public async Task JoinAudio(Discord.IVoiceChannel channel)
+        public async Task JoinAudioAsync(Discord.IVoiceChannel channel)
         {
             IAudioClient client = await channel.ConnectAsync();
-            if (AudioPlayer != null) AudioPlayer.AudioClient = client;
-            else AudioPlayer = new Audio.AudioStreamer(client);
+            if (AudioPlayer != null && AudioPlayer.AudioClient != client)
+            {
+                AudioPlayer.Dispose();
+                AudioPlayer = null;
+            }
+            if (AudioPlayer == null) AudioPlayer = new Audio.AudioStreamer(client);
+            else
+            {
+                await AudioPlayer.StopAsync();
+                AudioPlayer.AudioClient = client;
+            }
         }
 
-        internal async Task AutoJoinAudio(Discord.IGuild srv)
+        internal async Task AutoJoinAudioAsync(Discord.IGuild srv)
         {
             foreach (Discord.IVoiceChannel c in await srv.GetVoiceChannelsAsync())
                 if (c.Name.Equals(MusicChannel, System.StringComparison.OrdinalIgnoreCase))
                 {
-                    await JoinAudio(c);
+                    await JoinAudioAsync(c);
                     break;
                 }
         }
 
-        public void PlayAudio(string stream)
+        public async Task PlayAudioAsync(string stream)
         {
-            AudioPlayer.End();
-            using (System.Net.WebClient wc = new System.Net.WebClient())
-                AudioPlayer.Play(2, wc.OpenRead(stream));
+            await AudioPlayer.StopAsync();
+            await AudioPlayer.PlayAsync(new System.Uri(stream)).ConfigureAwait(false);
         }
 
         public void Dispose()

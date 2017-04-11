@@ -1,94 +1,70 @@
 ﻿using System;
-using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
-using NAudio.Wave;
 using Discord.Audio;
+using CSCore;
+using CSCore.Codecs;
+using Nito.AsyncEx;
 
 namespace DuckBot.Audio
 {
     public sealed class AudioStreamer : IDisposable
     {
-        public IAudioClient AudioClient { get; set; }
-
-        private BufferedWaveProvider buffWave;
+        public IAudioClient AudioClient { get; internal set; }
+        
+        private TaskCompletionSource<bool> awaiter;
         private bool end;
+        private AsyncMonitor stopSync = new AsyncMonitor(), playSync = new AsyncMonitor();
 
         public AudioStreamer(IAudioClient ac)
         {
             AudioClient = ac;
-            end = false;
-        }
-
-        private async Task ProcessStream(Stream input)
-        {
-            byte[] buffer = new byte[1024 * 128];
-            IMp3FrameDecompressor decompressor = null;
-            try
-            {
-                using (WrapperStream source = new WrapperStream(input))
-                    do
-                    {
-                        if (buffWave != null && buffWave.BufferLength - buffWave.BufferedBytes < buffWave.WaveFormat.AverageBytesPerSecond / 4)
-                            await Task.Delay(500);
-                        else
-                        {
-                            Mp3Frame frame;
-                            try { frame = Mp3Frame.LoadFromStream(source); }
-                            catch (EndOfStreamException) { break; }
-                            if (frame == null) break;
-                            else if (decompressor == null)
-                            {
-                                decompressor = new AcmMp3FrameDecompressor(new Mp3WaveFormat(frame.SampleRate, frame.ChannelMode == ChannelMode.Mono ? 1 : 2, frame.FrameLength, frame.BitRate));
-                                buffWave = new BufferedWaveProvider(decompressor.OutputFormat);
-                                buffWave.BufferDuration = TimeSpan.FromSeconds(7);
-                                buffWave.ReadFully = false;
-                            }
-                            int decompressed = decompressor.DecompressFrame(frame, buffer, 0);
-                            buffWave.AddSamples(buffer, 0, decompressed);
-                        }
-                    }
-                    while (!end);
-            }
-            catch (IOException ex) { Program.Log(ex); }
-            finally { if (decompressor != null) decompressor.Dispose(); }
-        }
-
-        public async void Play(int channels, Stream source)
-        {
-            end = false;
-            Task download = ProcessStream(source);
-            while (buffWave == null) await Task.Delay(500);
-            WaveFormat format = new WaveFormat(buffWave.WaveFormat.SampleRate, 16, channels);
-            using (MediaFoundationResampler resampler = new MediaFoundationResampler(buffWave, format))
-            {
-                resampler.ResamplerQuality = 60;
-                int blockSize = format.AverageBytesPerSecond / 50;
-                byte[] buffer = new byte[blockSize];
-                int byteCount;
-                lock (this)
-                    using (Stream output = AudioClient.CreatePCMStream(AudioApplication.Music, 1920, format.Channels))
-                        while (!end && (byteCount = resampler.Read(buffer, 0, blockSize)) > 0)
-                        {
-                            if (byteCount < blockSize)
-                                for (int i = byteCount; i < blockSize; ++i) buffer[i] = 0;
-                            output.Write(buffer, 0, buffer.Length);
-                        }
-            }
-            await download;
-            End();
-        }
-
-        public void End()
-        {
             end = true;
-            lock (this) buffWave = null;
+        }
+
+        public async Task PlayAsync(Uri input)
+        {
+            using (await playSync.EnterAsync())
+            {
+                end = false;
+                using (IWaveSource source = CodecFactory.Instance.GetCodec(input).ChangeSampleRate(44100))
+                {
+                    int size = source.WaveFormat.BytesPerSecond / 50;
+                    byte[] buffer = new byte[size];
+                    int read;
+                    using (AudioOutStream output = AudioClient.CreatePCMStream(AudioApplication.Music, 960, source.WaveFormat.Channels))
+                    {
+                        while (!end && (read = source.Read(buffer, 0, size)) > 0)
+                        {
+                            if (read < size)
+                                for (int i = read; i < size; ++i) buffer[i] = 0;
+                            await output.WriteAsync(buffer, 0, size);
+                        }
+                        await output.FlushAsync();
+                    }
+                    end = true;
+                    awaiter?.TrySetResult(source.Length <= source.Position);
+                }
+            }
+        }
+
+        public async Task<bool> StopAsync()
+        {
+            using (await stopSync.EnterAsync())
+                if (!end)
+                {
+                    end = true;
+                    awaiter = new TaskCompletionSource<bool>();
+                    bool result = await awaiter.Task;
+                    awaiter = null;
+                    return result;
+                }
+                else return true;
         }
 
         public void Dispose()
         {
-            End();
-            if (AudioClient != null) AudioClient.Dispose();
+            StopAsync().GetAwaiter().GetResult();
+            AudioClient.Dispose();
         }
     }
 }

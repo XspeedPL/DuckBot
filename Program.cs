@@ -36,7 +36,8 @@ namespace DuckBot
                 using (Inst = new Program(token))
                 {
                     Inst.LoadData();
-                    Inst.Start();
+                    Inst.StartAsync();
+                    while (!Inst.End) Thread.Sleep(666);
                 }
             }
         }
@@ -82,11 +83,11 @@ namespace DuckBot
             lock (data.ServerSessions)
                 foreach (Session s in data.ServerSessions.Values)
                     s.Dispose();
-            client.LogoutAsync().Wait();
-            client.StopAsync();
+            client.LogoutAsync().GetAwaiter().GetResult();
+            client.StopAsync().GetAwaiter().GetResult();
             client.Dispose();
             bgCancel.Cancel();
-            bgSaver.Wait();
+            bgSaver.GetAwaiter().GetResult();
             bgSaver.Dispose();
             bgCancel.Dispose();
             Log(LogSeverity.Info, Strings.exit_end);
@@ -119,7 +120,7 @@ namespace DuckBot
                 catch (Exception ex) { Log(new FileLoadException(string.Format(Strings.start_err_fileload, fi.Name), ex)); }
         }
 
-        private void Start()
+        private async void StartAsync()
         {
             Log(LogSeverity.Info, string.Format(Strings.start_info, Console.Title));
             Console.CancelKeyPress += Console_CancelKeyPress;
@@ -127,12 +128,11 @@ namespace DuckBot
             client.GuildMemberUpdated += GuildMemberUpdated;
             client.GuildAvailable += (guild) =>
             {
-                Task.Run(() => CreateSession(guild).AutoJoinAudio(guild));
+                Task.Run(async () => await CreateSession(guild).AutoJoinAudioAsync(guild));
                 return Task.CompletedTask;
             };
-            client.LoginAsync(TokenType.Bot, token).Wait();
-            client.StartAsync();
-            while (!End) Thread.Sleep(666);
+            await client.LoginAsync(TokenType.Bot, token);
+            await client.StartAsync();
         }
 
         private void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
