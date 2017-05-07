@@ -26,20 +26,20 @@ namespace DuckBot.Audio
             using (await playSync.EnterAsync())
             {
                 end = false;
-                using (IWaveSource source = CodecFactory.Instance.GetCodec(input).ChangeSampleRate(44100))
+                using (IWaveSource source = CodecFactory.Instance.GetCodec(input).ChangeSampleRate(Discord.Audio.Streams.OpusEncodeStream.SampleRate))
                 {
                     int size = source.WaveFormat.BytesPerSecond / 50;
                     byte[] buffer = new byte[size];
                     int read;
-                    using (AudioOutStream output = AudioClient.CreatePCMStream(AudioApplication.Music, 960, source.WaveFormat.Channels))
+                    using (AudioOutStream output = AudioClient.CreatePCMStream(AudioApplication.Music))
                     {
                         while (!end && (read = source.Read(buffer, 0, size)) > 0)
                         {
                             if (read < size)
                                 for (int i = read; i < size; ++i) buffer[i] = 0;
-                            await output.WriteAsync(buffer, 0, size);
+                            output.Write(buffer, 0, size);
                         }
-                        await output.FlushAsync();
+                        output.Flush();
                     }
                     end = true;
                     awaiter?.TrySetResult(source.Length <= source.Position);

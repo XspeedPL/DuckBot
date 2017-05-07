@@ -69,6 +69,7 @@ namespace DuckBot
 
         private static string[] EscSplit(string args, char delimiter)
         {
+            if (string.IsNullOrEmpty(args)) return new string[0];
             List<string> ret = new List<string>();
             int old, prev, ix;
             if (args[0] == delimiter)
