@@ -99,13 +99,18 @@ namespace DuckBot
                     {
                         if (args.Length == 1 || string.IsNullOrWhiteSpace(args[1]))
                             return FormatHelp("options musicchannel", string.Format("<{0}>", Strings.lab_channel));
+                        else if (args[1].Equals("-"))
+                        {
+                            msg.Session.LeaveAudioAsync().GetAwaiter().GetResult();
+                            msg.Session.MusicChannel = "";
+                        }
                         else
                         {
                             bool found = false;
                             foreach (IVoiceChannel c in msg.Server.GetVoiceChannelsAsync().GetAwaiter().GetResult())
                                 if (c.Name.Equals(args[1], StringComparison.OrdinalIgnoreCase))
                                 {
-                                    msg.Session.JoinAudioAsync(c).Wait();
+                                    msg.Session.JoinAudioAsync(c).GetAwaiter().GetResult();
                                     msg.Session.MusicChannel = c.Name;
                                     found = true;
                                     break;

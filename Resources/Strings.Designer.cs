@@ -182,7 +182,7 @@ namespace DuckBot.Resources {
         ///*Credits:*
         /// Discord.Net - RogueException
         /// Castle.Core - Castle Project Team
-        /// NAudio - Mark Heath
+        /// CSCore - Florian Rosmann
         /// NLua - Vinicius Jarina.
         /// </summary>
         internal static string info_credits {

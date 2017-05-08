@@ -7,7 +7,7 @@ using Nito.AsyncEx;
 
 namespace DuckBot.Audio
 {
-    public sealed class AudioStreamer : IDisposable
+    public sealed class AudioStreamer
     {
         public IAudioClient AudioClient { get; internal set; }
         
@@ -61,9 +61,9 @@ namespace DuckBot.Audio
                 else return true;
         }
 
-        public void Dispose()
+        public async Task DisposeAsync()
         {
-            StopAsync().GetAwaiter().GetResult();
+            await StopAsync();
             AudioClient.Dispose();
         }
     }

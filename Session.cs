@@ -144,17 +144,22 @@ namespace DuckBot
 
         public async Task JoinAudioAsync(Discord.IVoiceChannel channel)
         {
+            await LeaveAudioAsync();
             IAudioClient client = await channel.ConnectAsync();
-            if (AudioPlayer != null && AudioPlayer.AudioClient != client)
-            {
-                AudioPlayer.Dispose();
-                AudioPlayer = null;
-            }
             if (AudioPlayer == null) AudioPlayer = new Audio.AudioStreamer(client);
             else
             {
                 await AudioPlayer.StopAsync();
                 AudioPlayer.AudioClient = client;
+            }
+        }
+
+        public async Task LeaveAudioAsync()
+        {
+            if (AudioPlayer != null)
+            {
+                await AudioPlayer.DisposeAsync();
+                AudioPlayer = null;
             }
         }
 
@@ -176,7 +181,7 @@ namespace DuckBot
 
         public void Dispose()
         {
-            if (AudioPlayer != null) AudioPlayer.Dispose();
+            if (AudioPlayer != null) AudioPlayer.DisposeAsync().GetAwaiter().GetResult();
         }
     }
 }
