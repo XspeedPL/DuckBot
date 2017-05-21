@@ -11,7 +11,6 @@ using DuckBot.Resources;
 
 namespace DuckBot.Sandbox
 {
-
     public sealed class CS : MarshalByRefObject
     {
         public CS() { }
@@ -46,11 +45,13 @@ namespace DuckBot.Sandbox
 
         internal static string Execute(string content, CmdContext msg)
         {
-            AppDomainSetup setup = new AppDomainSetup();
-            setup.ApplicationBase = AppDomain.CurrentDomain.BaseDirectory;
-            setup.DisallowBindingRedirects = true;
-            setup.DisallowCodeDownload = true;
-            setup.DisallowPublisherPolicy = true;
+            AppDomainSetup setup = new AppDomainSetup()
+            {
+                ApplicationBase = AppDomain.CurrentDomain.BaseDirectory,
+                DisallowBindingRedirects = true,
+                DisallowCodeDownload = true,
+                DisallowPublisherPolicy = true
+            };
             PermissionSet ps = new PermissionSet(PermissionState.None);
             ps.AddPermission(new FileIOPermission(FileIOPermissionAccess.Read | FileIOPermissionAccess.PathDiscovery, setup.ApplicationBase));
             ps.AddPermission(new SecurityPermission(SecurityPermissionFlag.Execution | SecurityPermissionFlag.UnmanagedCode | SecurityPermissionFlag.ControlThread));
