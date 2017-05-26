@@ -99,7 +99,7 @@ namespace DuckBot
         {
             string file = Path.Combine(DuckData.SessionsDir.FullName, "session_" + ServerId + ".dat");
             lock (this)
-                using (BinaryWriter bw = new BinaryWriter(new FileStream(file, FileMode.Create, FileAccess.Write)))
+                using (BinaryWriter bw = new BinaryWriter(File.Open(file, FileMode.Create, FileAccess.Write, FileShare.Read)))
                 {
                     PendingSave = false;
                     bw.Write(Version);

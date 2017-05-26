@@ -4,6 +4,7 @@ using System.Threading;
 using System.Globalization;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using DuckBot.Resources;
 using Discord;
 
@@ -17,9 +18,9 @@ namespace DuckBot
         private readonly Discord.WebSocket.DiscordSocketClient client;
         private readonly DuckData data;
         private readonly string token;
-        private readonly Task bgSaver;
+        private readonly ConfiguredTaskAwaitable loopTask;
         private readonly CancellationTokenSource bgCancel;
-        private readonly StreamWriter log;
+        private readonly Logger stateLog;
 
         internal Dictionary<string, HardCmd> HardCmds { get; private set; }
 
@@ -28,7 +29,7 @@ namespace DuckBot
         static void Main()
         {
             Console.Title = "DuckBot";
-            if (!DuckData.LogFile.Exists) File.WriteAllText(DuckData.LogFile.FullName, "");
+            if (DuckData.StateLogFile.Exists) DuckData.StateLogFile.Delete();
             if (!DuckData.TokenFile.Exists) Log(new FileNotFoundException(Strings.start_err_notoken));
             else
             {
@@ -45,7 +46,7 @@ namespace DuckBot
         private Program(string userToken)
         {
             End = false;
-            log = DuckData.LogFile.AppendText();
+            stateLog = new Logger(DuckData.StateLogFile.CreateText(), Console.Out);
             client = new Discord.WebSocket.DiscordSocketClient(new Discord.WebSocket.DiscordSocketConfig()
             {
                 DefaultRetryMode = RetryMode.AlwaysRetry,
@@ -56,19 +57,22 @@ namespace DuckBot
             data = new DuckData();
             HardCmds = HardCmd.CreateDefault();
             bgCancel = new CancellationTokenSource();
-            bgSaver = Task.Run(AsyncSaver);
+            loopTask = AsyncSaver(bgCancel.Token).ConfigureAwait(false);
         }
         
-        public async Task AsyncSaver()
+        public async Task AsyncSaver(CancellationToken cancelToken)
         {
-            while (!bgCancel.IsCancellationRequested)
+            int i = 0;
+            while (!cancelToken.IsCancellationRequested)
             {
                 try
                 {
-                    await Task.Delay(120000, bgCancel.Token);
-                    lock (data.ServerSessions)
-                        foreach (Session s in data.ServerSessions.Values)
-                            if (s.PendingSave) Task.Run((Action)s.Save);
+                    await Task.Delay(1000, cancelToken);
+                    await stateLog.Output();
+                    if (++i % 120 == 0)
+                        lock (data.ServerSessions)
+                            foreach (Session s in data.ServerSessions.Values)
+                                if (s.PendingSave) Task.Run((Action)s.Save);
                 }
                 catch { }
             }
@@ -87,11 +91,9 @@ namespace DuckBot
             client.StopAsync().GetAwaiter().GetResult();
             client.Dispose();
             bgCancel.Cancel();
-            bgSaver.GetAwaiter().GetResult();
-            bgSaver.Dispose();
+            loopTask.GetAwaiter().GetResult();
             bgCancel.Dispose();
-            Log(LogSeverity.Info, Strings.exit_end);
-            log.Close();
+            stateLog.Dispose();
         }
         
         private void LoadData()
@@ -248,11 +250,7 @@ namespace DuckBot
         public void Log(LogSeverity severity, string text)
         {
             text = "[" + DateTime.UtcNow.ToShortTimeString() + "] [" + severity + "] " + text;
-            lock (log)
-            {
-                log.WriteLine(text);
-                Console.WriteLine(text);
-            }
+            stateLog.Log(text);
         }
     }
 }

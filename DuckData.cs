@@ -9,7 +9,7 @@ namespace DuckBot
         internal static readonly ulong SuperUserId = 168285549088604160uL;
 
         internal static readonly DirectoryInfo SessionsDir = new DirectoryInfo("sessions");
-        internal static readonly FileInfo LogFile = new FileInfo("Activity.log");
+        internal static readonly FileInfo StateLogFile = new FileInfo("State.log");
         internal static readonly FileInfo WhitelistFile = new FileInfo("Whitelist.cfg");
         internal static readonly FileInfo TokenFile = new FileInfo("Token.cfg");
 
