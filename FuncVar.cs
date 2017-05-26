@@ -3,11 +3,11 @@ using System.Collections.Generic;
 
 namespace DuckBot
 {
-    public delegate string CmdHandler(string[] args, CmdContext context);
-
     public static class FuncVar
     {
-        private static Dictionary<string, CmdHandler> vars = new Dictionary<string, CmdHandler>
+        public delegate string FuncVarHandler(string[] args, CmdContext context);
+
+        private static Dictionary<string, FuncVarHandler> vars = new Dictionary<string, FuncVarHandler>
         {
             { "user", (args, msg) => msg.Sender.Username },
             { "nickOrUser", (args, msg) => string.IsNullOrWhiteSpace(msg.Sender.Nickname) ? msg.Sender.Username : msg.Sender.Nickname },
@@ -113,7 +113,7 @@ namespace DuckBot
 
         public static string Run(string name, string[] args, CmdContext ctx) => vars[name](args, ctx);
 
-        public static bool Register(string name, CmdHandler action)
+        public static bool Register(string name, FuncVarHandler action)
         {
             if (Exists(name)) return false;
             else { vars.Add(name, action); return true; }

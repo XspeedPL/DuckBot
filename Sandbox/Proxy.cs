@@ -10,8 +10,7 @@ namespace DuckBot.Sandbox
             Type retType = typeof(T);
             if (!retType.IsInterface) throw new ArgumentException("Type must be an interface");
             ProxyGenerator generator = new ProxyGenerator();
-            ProxyGenerationOptions options = new ProxyGenerationOptions();
-            options.BaseTypeForInterfaceProxy = typeof(MarshalByRefObject);
+            ProxyGenerationOptions options = new ProxyGenerationOptions() { BaseTypeForInterfaceProxy = typeof(MarshalByRefObject) };
             return (T)generator.CreateInterfaceProxyWithTarget(retType, instance, options);
         }
     }

@@ -1,7 +1,6 @@
 ﻿using System;
-using System.Net;
-using System.Web;
-using System.Text;
+using System.Net.Http;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 
 namespace DuckBot.Audio
@@ -10,10 +9,11 @@ namespace DuckBot.Audio
     {
         private static readonly string CLIENT_ID = "client_id=cd3e093bf9688f09e3cdf15565fed8f3";
         
-        public static (string, string, string) Search(string song)
+        public static async Task<(string, string, string)> Search(string song)
         {
-            using (WebClient wc = new WebClient())
+            using (HttpClient hc = new HttpClient())
             {
+                hc.DefaultRequestHeaders.AcceptEncoding.Add(System.Net.Http.Headers.StringWithQualityHeaderValue.Parse("utf-8"));
                 List<ResultItem> res = null;
                 string data = null;
                 int i = -1;
@@ -21,7 +21,7 @@ namespace DuckBot.Audio
                 while (++i < 6)
                     try
                     {
-                        data = Encoding.UTF8.GetString(wc.DownloadData("https://api.soundcloud.com/tracks.json?" + CLIENT_ID + "&limit=10&q=" + HttpUtility.UrlEncode(song)));
+                        data = await hc.GetStringAsync("https://api.soundcloud.com/tracks.json?" + CLIENT_ID + "&limit=10&q=" + System.Net.WebUtility.UrlEncode(song));
                         res = new List<ResultItem>(ResultItem.Parse(data));
                         if (res.Count > 1)
                         {
@@ -36,9 +36,9 @@ namespace DuckBot.Audio
                             }
                         }
                     }
-                    catch (WebException)
+                    catch (HttpRequestException)
                     {
-                        System.Threading.Thread.Sleep(500);
+                        await Task.Delay(500);
                         if (res != null)
                             foreach (ResultItem ri in res)
                                 used.Remove(ri);

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading.Tasks;
 using System.Collections.Generic;
 using DuckBot.Resources;
 using Discord;
@@ -8,13 +7,15 @@ namespace DuckBot
 {
     public class HardCmd
     {
-        public CmdHandler Func { get; private set; }
+        public delegate string HardCmdHandler(string[] args, CmdContext context);
+
+        public HardCmdHandler Func { get; private set; }
         public byte ArgsMin { get; private set; }
         public byte ArgsMax { get; private set; }
         public bool AdminOnly { get; private set; }
         public string HelpText { get; private set; }
 
-        public HardCmd(byte minArgs, byte maxArgs, CmdHandler action, string helpText, bool requireAdmin = false)
+        public HardCmd(byte minArgs, byte maxArgs, HardCmdHandler action, string helpText, bool requireAdmin = false)
         {
             ArgsMin = minArgs; ArgsMax = maxArgs; Func = action; HelpText = helpText; AdminOnly = requireAdmin;
         }
@@ -222,7 +223,7 @@ namespace DuckBot
             { "playsong", new HardCmd(1, 1, (args, msg) =>
                 {
                     if (msg.Session.AudioPlayer == null) return Strings.err_generic;
-                    (string result, string song, string url) = Audio.SoundCloudAPI.Search(args[0]);
+                    (string result, string song, string url) = Audio.SoundCloudAPI.Search(args[0]).GetAwaiter().GetResult();
                     if (song != null)
                     {
                         msg.Channel.SendMessageAsync(result);
