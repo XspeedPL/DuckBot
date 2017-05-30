@@ -20,7 +20,7 @@ namespace DuckBot
                             return SoftCmd.Escape(msg.Args.Split(' ')[ix]);
                         }
                         catch (FormatException) { return "ERROR"; }
-                    return SoftCmd.Escape(msg.Args);
+                    else return SoftCmd.Escape(msg.Args);
                 }
             },
             { "mention", (args, msg) =>
@@ -103,8 +103,28 @@ namespace DuckBot
             { "calc", (args, msg) =>
                 {
                     if (args.Length < 1) return "ERROR";
-                    using (System.Data.DataTable dt = new System.Data.DataTable())
+                    else using (System.Data.DataTable dt = new System.Data.DataTable())
                         return dt.Compute(args[0], "").ToString();
+                }
+            },
+            { "download", (args, msg) =>
+                {
+                    if (args.Length < 1) return "ERROR";
+                    else try
+                    {
+                        using (System.Net.Http.HttpClient client = new System.Net.Http.HttpClient())
+                        {
+                            client.DefaultRequestHeaders.AcceptEncoding.Add(System.Net.Http.Headers.StringWithQualityHeaderValue.Parse("utf-8"));
+                            client.Timeout = TimeSpan.FromSeconds(5);
+                            using (System.IO.Stream s = client.GetStreamAsync("").GetAwaiter().GetResult())
+                            {
+                                byte[] buf = new byte[4096];
+                                int read = s.Read(buf, 0, buf.Length);
+                                return System.Text.Encoding.UTF8.GetString(buf, 0, read);
+                            }
+                        }
+                    }
+                    catch (System.Net.Http.HttpRequestException) { return "ERROR"; }
                 }
             }
         };

@@ -242,6 +242,7 @@
     <None Include="App.config" />
     <EmbeddedResource Include="Resources\Sandbox.lua" />
     <None Include="packages.config" />
+    <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="libsodium.dll">
