@@ -226,9 +226,13 @@ namespace DuckBot
                         else if (ss.Cmds.ContainsKey(cmd))
                         {
                             await msg.Channel.TriggerTypingAsync();
-                            string res = ss.Cmds[cmd].Run(new CmdContext(msg, ss));
-                            if (res != null)
+                            CmdContext ctx = new CmdContext(msg, ss);
+                            string res = ss.Cmds[cmd].Run(ctx);
+                            if (!ctx.Processed)
+                            {
+                                if (res.Length > 2000) res = res.Remove(2000);
                                 await msg.Channel.SendMessageAsync(string.IsNullOrWhiteSpace(res) ? Strings.ret_empty_cmd : res);
+                            }
                         }
                     }
                     catch (Exception ex)

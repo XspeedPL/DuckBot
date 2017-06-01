@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using System.Net.Http;
 using System.Collections.Generic;
 
 namespace DuckBot
@@ -112,11 +114,11 @@ namespace DuckBot
                     if (args.Length < 1) return "ERROR";
                     else try
                     {
-                        using (System.Net.Http.HttpClient client = new System.Net.Http.HttpClient())
+                        using (HttpClient client = new HttpClient())
                         {
                             client.DefaultRequestHeaders.AcceptEncoding.Add(System.Net.Http.Headers.StringWithQualityHeaderValue.Parse("utf-8"));
                             client.Timeout = TimeSpan.FromSeconds(5);
-                            using (System.IO.Stream s = client.GetStreamAsync("").GetAwaiter().GetResult())
+                            using (Stream s = client.GetStreamAsync(args[0]).GetAwaiter().GetResult())
                             {
                                 byte[] buf = new byte[4096];
                                 int read = s.Read(buf, 0, buf.Length);
@@ -124,7 +126,27 @@ namespace DuckBot
                             }
                         }
                     }
-                    catch (System.Net.Http.HttpRequestException) { return "ERROR"; }
+                    catch (HttpRequestException) { return "ERROR"; }
+                }
+            },
+            { "img", (args, msg) =>
+                {
+                    if (args.Length < 1) return "ERROR";
+                    else try
+                    {
+                        string url = args[0];
+                        int ix = url.LastIndexOf('.');
+                        string ext = ix != -1 && url.Length - ix <= 5 ? url.Substring(ix + 1) : "png";
+                        using (HttpClient client = new HttpClient())
+                        {
+                            client.DefaultRequestHeaders.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("image/*"));
+                            using (Stream s = client.GetStreamAsync(url).GetAwaiter().GetResult())
+                                msg.Channel.SendFileAsync(s, "image." + ext).GetAwaiter().GetResult();
+                            msg.Processed = true;
+                            return "";
+                        }
+                    }
+                    catch (HttpRequestException) { return "ERROR"; }
                 }
             }
         };

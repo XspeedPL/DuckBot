@@ -36,6 +36,7 @@ All functions have a specified minimum amount of arguments, if more than neccess
 * `{eval:script}` - Evaluates `script` string as a script by stripping all, if any character escapes
 * `{find:str,val}` - Returns the position of first occurence of `val` inside `str` string, or -1 if none were found
 * `{if:str1,str2,match,else}` - Compares `str1` with `str2` and returns `match` or `else` based on whether they match or not
+* `{img:url}` - Attempts to post an image downloaded from the specified URL
 * `{input}` - Returns the text passed by the user with the command
   * `{input:n}` - Returns only the `n`-th word of the text
 * `{length:str}` - Returns the length of the `str` string

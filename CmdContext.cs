@@ -9,6 +9,7 @@ namespace DuckBot
         public IGuild Server { get; private set; }
         public ITextChannel Channel { get; private set; }
         public IGuildUser Sender { get; private set; }
+        public bool Processed { get; set; }
 
         public Session Session { get; private set; }
 
@@ -21,6 +22,7 @@ namespace DuckBot
             Sender = (IGuildUser)message.Author;
             Server = Sender.Guild;
             Session = ss;
+            Processed = false;
         }
 
         public CmdContext(CmdContext copy, string text)
@@ -31,6 +33,7 @@ namespace DuckBot
             Channel = copy.Channel;
             Sender = copy.Sender;
             Session = copy.Session;
+            Processed = false;
         }
     }
 }
