@@ -21,16 +21,16 @@ namespace DuckBot
         public async Task Output()
         {
             while (queue.TryDequeue(out string msg))
-                foreach (StreamWriter sw in outputs)
+                foreach (TextWriter sw in outputs)
                     await sw.WriteLineAsync(msg);
-            foreach (StreamWriter sw in outputs)
+            foreach (TextWriter sw in outputs)
                 await sw.FlushAsync();
         }
 
         public void Dispose()
         {
             Output().GetAwaiter().GetResult();
-            foreach (StreamWriter sw in outputs)
+            foreach (TextWriter sw in outputs)
                 sw.Close();
             outputs = null;
         }
