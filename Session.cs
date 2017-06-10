@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Globalization;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Discord.Audio;
@@ -17,7 +18,7 @@ namespace DuckBot
         internal Audio.AudioStreamer AudioPlayer { get; set; }
 
         public bool ShowChanges { get; internal set; }
-        public string Language { get; private set; }
+        public CultureInfo Language { get; private set; }
         public bool PendingSave { get; private set; }
         public string MusicChannel { get; internal set; }
         public string CommandPrefix { get; internal set; }
@@ -42,7 +43,7 @@ namespace DuckBot
             Msgs = new Dictionary<ulong, Inbox>();
             ShowChanges = false;
             PendingSave = false;
-            Language = "en-US";
+            Language = new CultureInfo("en-US");
             MusicChannel = "";
             CommandPrefix = ">";
         }
@@ -51,9 +52,9 @@ namespace DuckBot
 
         public bool SetLanguage(string langCode)
         {
-            if (Utils.IsCultureAvailable(langCode))
+            if (Utils.IsCultureAvailable(langCode, out CultureInfo culture))
             {
-                Language = langCode;
+                Language = culture;
                 SetPending();
                 return true;
             }
@@ -89,7 +90,7 @@ namespace DuckBot
                     string value = br.ReadString();
                     Vars.Add(name, value);
                 }
-                Language = br.ReadString();
+                SetLanguage(br.ReadString());
                 MusicChannel = ver >= 1 ? br.ReadString() : "";
                 CommandPrefix = ver >= 2 ? br.ReadString() : ">";
             }
@@ -123,7 +124,7 @@ namespace DuckBot
                             bw.Write(kvp.Key);
                             bw.Write(kvp.Value);
                         }
-                    bw.Write(Language);
+                    bw.Write(Language.Name);
                     bw.Write(MusicChannel);
                     bw.Write(CommandPrefix);
                 }

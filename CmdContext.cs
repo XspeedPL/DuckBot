@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Resources;
 using Discord;
 
 namespace DuckBot
@@ -41,5 +42,7 @@ namespace DuckBot
             Processed = false;
             AdvancedUser = copy.AdvancedUser;
         }
+
+        public string GetString(string name) => Resources.Strings.ResourceManager.GetString(name, Session.Language);
     }
 }

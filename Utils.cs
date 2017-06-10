@@ -13,16 +13,19 @@ namespace DuckBot
         
         public static string StartCase(this string data) => data == null ? null : char.ToUpper(data[0]) + data.Substring(1);
         
-        public static bool IsCultureAvailable(string langCode)
+        public static bool IsCultureAvailable(string langCode, out CultureInfo culture)
         {
-            CultureInfo ci = null;
-            try { ci = CultureInfo.GetCultureInfo(langCode); }
-            catch (CultureNotFoundException) { return false; }
+            try { culture = CultureInfo.GetCultureInfo(langCode); }
+            catch (CultureNotFoundException)
+            {
+                culture = null;
+                return false;
+            }
             ResourceManager rm = null;
             try
             {
                 rm = new ResourceManager(typeof(Resources.Strings));
-                using (ResourceSet rs = rm.GetResourceSet(ci, true, false))
+                using (ResourceSet rs = rm.GetResourceSet(culture, true, false))
                     if (rs != null) return true;
                 return false;
             }

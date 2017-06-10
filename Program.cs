@@ -203,11 +203,6 @@ namespace DuckBot
             int ix = cmdName.IndexOf(' ');
             if (ix != -1) cmdName = cmdName.Remove(ix);
             cmdName = cmdName.ToLowerInvariant();
-            CultureInfo ci = new CultureInfo(ss.Language);
-            Thread.CurrentThread.CurrentCulture = ci;
-            Thread.CurrentThread.CurrentUICulture = ci;
-            CultureInfo.DefaultThreadCurrentCulture = ci;
-            CultureInfo.DefaultThreadCurrentUICulture = ci;
             try
             {
                 ICmd cmd = HardCmds.ContainsKey(cmdName) ? (ICmd)HardCmds[cmdName] : ss.Cmds.ContainsKey(cmdName) ? ss.Cmds[cmdName] : null;
