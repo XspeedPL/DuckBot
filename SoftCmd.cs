@@ -6,7 +6,7 @@ using DuckBot.Resources;
 
 namespace DuckBot
 {
-    public class SoftCmd
+    public class SoftCmd : ICmd
     {
         private static readonly Regex CmdPattern = new Regex(@"(?<!\^){([^{}:,|^\\ ]+?)(:(?>{(?<n>)|}(?<-n>)|[^{}]+)*(?(n)(?!)))?}");
 

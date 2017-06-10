@@ -5,19 +5,38 @@ using Discord;
 
 namespace DuckBot
 {
-    public class HardCmd
+    public class HardCmd : ICmd
     {
         public delegate string HardCmdHandler(string[] args, CmdContext context);
 
-        public HardCmdHandler Func { get; private set; }
-        public byte ArgsMin { get; private set; }
-        public byte ArgsMax { get; private set; }
-        public bool AdminOnly { get; private set; }
-        public string HelpText { get; private set; }
+        private HardCmdHandler Func { get; }
+        private byte ArgsMin { get; }
+        private byte ArgsMax { get; }
+        private bool AdminOnly { get; }
+        private string HelpText { get; }
 
         public HardCmd(byte minArgs, byte maxArgs, HardCmdHandler action, string helpText, bool requireAdmin = false)
         {
             ArgsMin = minArgs; ArgsMax = maxArgs; Func = action; HelpText = helpText; AdminOnly = requireAdmin;
+        }
+
+        public string Run(CmdContext ctx)
+        {
+            if (AdminOnly && (!ctx.Sender.GuildPermissions.Administrator || ctx.Sender.IsBot) && !ctx.AdvancedUser)
+            {
+                ctx.Result = CmdContext.CmdError.NoAccess;
+                return null;
+            }
+            else
+            {
+                string[] args = ctx.Args.Length == 0 ? new string[0] : ctx.Args.Split(new[] { ' ' }, ArgsMax, StringSplitOptions.RemoveEmptyEntries);
+                if (args.Length < ArgsMin)
+                {
+                    ctx.Result = CmdContext.CmdError.ArgCount;
+                    return null;
+                }
+                else return Func(args, ctx);
+            }
         }
 
         internal static Dictionary<string, HardCmd> CreateDefault() => new Dictionary<string, HardCmd>

@@ -192,59 +192,59 @@ namespace DuckBot
         {
             Session ss = CreateSession(((IGuildChannel)msg.Channel).Guild);
             if (msg.Author.Id != client.CurrentUser.Id && msg.Content.StartsWith(ss.CommandPrefix))
-                Task.Run(async () =>
-                {
-                    string cmd = msg.Content.Substring(ss.CommandPrefix.Length);
-                    int ix = cmd.IndexOf(' ');
-                    if (ix != -1) cmd = cmd.Remove(ix);
-                    cmd = cmd.ToLowerInvariant();
-                    Thread.CurrentThread.CurrentCulture = new CultureInfo(ss.Language);
-                    Thread.CurrentThread.CurrentUICulture = CultureInfo.CurrentCulture;
-                    CultureInfo.DefaultThreadCurrentCulture = CultureInfo.CurrentCulture;
-                    CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.CurrentCulture;
-                    try
-                    {
-                        if (HardCmds.ContainsKey(cmd))
-                        {
-                            HardCmd hcmd = HardCmds[cmd];
-                            IGuildUser guser = (IGuildUser)msg.Author;
-                            if (hcmd.AdminOnly && (!guser.GuildPermissions.Administrator || msg.Author.IsBot) && !data.AdvancedUsers.Contains(msg.Author.Id))
-                                await msg.Channel.SendMessageAsync(Strings.err_notadmin);
-                            else
-                            {
-                                string[] args = ix == -1 ? new string[0] : msg.Content.Substring(ix + 2).Split(new char[] { ' ' }, hcmd.ArgsMax, StringSplitOptions.RemoveEmptyEntries);
-                                if (args.Length >= hcmd.ArgsMin)
-                                {
-                                    await msg.Channel.TriggerTypingAsync();
-                                    string res = hcmd.Func(args, new CmdContext(msg, ss));
-                                    if (res != null)
-                                        await msg.Channel.SendMessageAsync(string.IsNullOrWhiteSpace(res) ? Strings.ret_empty_cmd : res);
-                                }
-                                else await msg.Channel.SendMessageAsync(Strings.err_params);
-                            }
-                        }
-                        else if (ss.Cmds.ContainsKey(cmd))
-                        {
-                            await msg.Channel.TriggerTypingAsync();
-                            CmdContext ctx = new CmdContext(msg, ss);
-                            string res = ss.Cmds[cmd].Run(ctx);
-                            if (!ctx.Processed)
-                            {
-                                if (res.Length > 2000) res = res.Remove(2000);
-                                await msg.Channel.SendMessageAsync(string.IsNullOrWhiteSpace(res) ? Strings.ret_empty_cmd : res);
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Log(ex);
-                        await msg.Channel.SendMessageAsync(Strings.err_generic + ": " + ex.Message);
-                    }
-                });
+                MessageReceivedInner(msg).ConfigureAwait(false);
             return Task.CompletedTask;
         }
 
-        public static Task Log(LogMessage e) => Task.Run(() => Inst.Log(e.Severity, "[" + e.Source + "] " + e.Message));
+        private async Task MessageReceivedInner(IMessage msg)
+        {
+            Session ss = CreateSession(((IGuildChannel)msg.Channel).Guild);
+            string cmdName = msg.Content.Substring(ss.CommandPrefix.Length);
+            int ix = cmdName.IndexOf(' ');
+            if (ix != -1) cmdName = cmdName.Remove(ix);
+            cmdName = cmdName.ToLowerInvariant();
+            CultureInfo ci = new CultureInfo(ss.Language);
+            Thread.CurrentThread.CurrentCulture = ci;
+            Thread.CurrentThread.CurrentUICulture = ci;
+            CultureInfo.DefaultThreadCurrentCulture = ci;
+            CultureInfo.DefaultThreadCurrentUICulture = ci;
+            try
+            {
+                ICmd cmd = HardCmds.ContainsKey(cmdName) ? (ICmd)HardCmds[cmdName] : ss.Cmds.ContainsKey(cmdName) ? ss.Cmds[cmdName] : null;
+                if (cmd != null)
+                {
+                    await msg.Channel.TriggerTypingAsync();
+                    CmdContext ctx = new CmdContext(msg, ss, data.AdvancedUsers.Contains(msg.Author.Id));
+                    string res = cmd.Run(ctx);
+                    if (ctx.Result == CmdContext.CmdError.None)
+                    {
+                        bool empty = string.IsNullOrWhiteSpace(res);
+                        if (!empty || !ctx.Processed)
+                        {
+                            if (!empty && res.Length > 2000) res = res.Remove(2000);
+                            await ctx.Channel.SendMessageAsync(string.IsNullOrWhiteSpace(res) ? Strings.ret_empty_cmd : res);
+                        }
+                    }
+                    else if (ctx.Result == CmdContext.CmdError.NoAccess)
+                        await msg.Channel.SendMessageAsync(Strings.err_notadmin);
+                    else if (ctx.Result == CmdContext.CmdError.ArgCount)
+                        await msg.Channel.SendMessageAsync(Strings.err_params);
+                    //else if (ctx.Result == CmdContext.CmdError.BadFormat)
+                    //    await msg.Channel.SendMessageAsync(Strings.err_badformat);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log(ex);
+                await msg.Channel.SendMessageAsync(Strings.err_generic + ": " + ex.Message);
+            }
+        }
+
+        public static Task Log(LogMessage e)
+        {
+            Inst.Log(e.Severity, "[" + e.Source + "] " + e.Message);
+            return Task.CompletedTask;
+        }
 
         public static void Log(Exception ex)
         {
