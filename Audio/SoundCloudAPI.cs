@@ -7,7 +7,7 @@ namespace DuckBot.Audio
 {
     internal static class SoundCloudAPI
     {
-        private static readonly string CLIENT_ID = "client_id=cd3e093bf9688f09e3cdf15565fed8f3";
+        private const string CLIENT_ID = "client_id=cd3e093bf9688f09e3cdf15565fed8f3";
         
         public static async Task<(string, string, string)> Search(string song)
         {

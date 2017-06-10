@@ -6,7 +6,7 @@ namespace DuckBot
 {
     internal class DuckData
     {
-        internal static readonly ulong SuperUserId = 168285549088604160uL;
+        internal const ulong SuperUserId = 168285549088604160uL;
 
         internal static readonly DirectoryInfo SessionsDir = new DirectoryInfo("sessions");
         internal static readonly FileInfo StateLogFile = new FileInfo("State.log");

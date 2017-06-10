@@ -94,6 +94,7 @@ namespace DuckBot
                             if (s.Vars.ContainsKey(args[0])) s.Vars[args[0]] = args[1];
                             else s.Vars.Add(args[0], args[1]);
                         s.SetPending();
+                        msg.Processed = true;
                         return "";
                     }
                     else return "ERROR";
@@ -153,7 +154,7 @@ namespace DuckBot
 
         public static bool Exists(string name) => vars.ContainsKey(name);
 
-        public static string Run(string name, string[] args, CmdContext ctx) => vars[name](args, ctx);
+        public static string Run(string name, string[] args, CmdContext context) => vars[name](args, context);
 
         public static bool Register(string name, FuncVarHandler action)
         {

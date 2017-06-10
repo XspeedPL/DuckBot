@@ -29,10 +29,11 @@ namespace DuckBot
             finally { rm.ReleaseAllResources(); }
         }
 
-        public static IGuildUser FindUser(this IGuild srv, string user)
+        public static IGuildUser FindUser(this IGuild guild, string user)
         {
+            if (guild == null) throw new ArgumentNullException(nameof(guild));
             if (!string.IsNullOrWhiteSpace(user))
-                foreach (IGuildUser u in srv.GetUsersAsync().GetAwaiter().GetResult())
+                foreach (IGuildUser u in guild.GetUsersAsync().GetAwaiter().GetResult())
                     if (u.Username.Equals(user, StringComparison.OrdinalIgnoreCase) || u.Mention == user)
                         return u;
             return null;
