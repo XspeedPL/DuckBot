@@ -12,24 +12,14 @@ namespace DuckBot
             Task.Factory.StartNew(() => func(arg), longRunning ? TaskCreationOptions.LongRunning : TaskCreationOptions.DenyChildAttach);
         
         public static string StartCase(this string data) => data == null ? null : char.ToUpper(data[0]) + data.Substring(1);
-        
+
         public static bool IsCultureAvailable(string langCode, out CultureInfo culture)
         {
+            culture = null;
             try { culture = CultureInfo.GetCultureInfo(langCode); }
-            catch (CultureNotFoundException)
-            {
-                culture = null;
-                return false;
-            }
-            ResourceManager rm = null;
-            try
-            {
-                rm = new ResourceManager(typeof(Resources.Strings));
-                using (ResourceSet rs = rm.GetResourceSet(culture, true, false))
-                    if (rs != null) return true;
-                return false;
-            }
-            finally { rm.ReleaseAllResources(); }
+            catch (CultureNotFoundException) { return false; }
+            using (ResourceSet rs = Resources.Strings.ResourceManager.GetResourceSet(culture, true, false))
+                return rs != null;
         }
 
         public static IGuildUser FindUser(this IGuild guild, string user)

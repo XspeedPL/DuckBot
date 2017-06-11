@@ -35,7 +35,7 @@ namespace DuckBot
 
         public void Load(BinaryReader reader)
         {
-            if (reader == null) throw new ArgumentNullException("reader");
+            if (reader == null) throw new ArgumentNullException(nameof(reader));
             lock (this)
             {
                 Creator = reader.ReadString();
@@ -47,7 +47,7 @@ namespace DuckBot
 
         public void Save(BinaryWriter writer)
         {
-            if (writer == null) throw new ArgumentNullException("writer");
+            if (writer == null) throw new ArgumentNullException(nameof(writer));
             lock (this)
             {
                 writer.Write(Creator);
@@ -143,11 +143,11 @@ namespace DuckBot
                             return CmdEngine(data, context);
                     }
                 }
-                return "Switch " + Strings.ret_empty;
+                return "Switch " + context.GetString("ret_empty");
             }
             else if (Type == CmdType.Lua) return Sandbox.Lua.Execute(content, context);
             else if (Type == CmdType.CSharp) return Sandbox.CS.Execute(content, context);
-            else throw new InvalidOperationException("Type");
+            else throw new ArgumentOutOfRangeException(nameof(Type));
         }
     }
 }

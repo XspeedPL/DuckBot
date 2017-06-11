@@ -50,13 +50,13 @@ namespace DuckBot
             }
         }
 
-        public void Deliver(IGuild srv, IMessageChannel recipent, bool remove = true)
+        public void Deliver(Session session, IGuild guild, IMessageChannel recipent, bool remove = true)
         {
             lock (this)
                 foreach (KeyValuePair<ulong, string[]> kvp in queue)
                 {
-                    string sender = srv.GetUserAsync(kvp.Key).GetAwaiter().GetResult().Username;
-                    string msg = string.Format(Resources.Strings.title_inbox, sender);
+                    string sender = guild.GetUserAsync(kvp.Key).GetAwaiter().GetResult().Username;
+                    string msg = string.Format(session.GetString("title_inbox"), sender);
                     for (int i = 0; i < 5; ++i)
                     {
                         if (!string.IsNullOrWhiteSpace(kvp.Value[i]))

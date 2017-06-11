@@ -30,10 +30,10 @@ namespace DuckBot.Sandbox
                             proxy.Print(arr);
                         }
                         string res = proxy.ToString().Trim();
-                        return res.Length == 0 ? Strings.ret_empty_script : res;
+                        return res.Length == 0 ? msg.GetString("Strings.ret_empty_script") : res;
                     }
                 }
-                catch (NLua.Exceptions.LuaScriptException ex) { return Strings.err_generic + ": " + ex.Message + "\n``` " + ex.Source + " ```"; }
+                catch (NLua.Exceptions.LuaScriptException ex) { return msg.GetString("err_generic") + ": " + ex.Message + "\n``` " + ex.Source + " ```"; }
             }
         }
 

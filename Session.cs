@@ -182,7 +182,10 @@ namespace DuckBot
 
         public void Dispose()
         {
-            if (AudioPlayer != null) AudioPlayer.DisposeAsync().GetAwaiter().GetResult();
+            try { if (AudioPlayer != null) AudioPlayer.DisposeAsync().GetAwaiter().GetResult(); }
+            catch { }
         }
+
+        public string GetString(string name) => Program.ResourceManager.GetString(name, Language);
     }
 }

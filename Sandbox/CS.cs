@@ -15,7 +15,7 @@ namespace DuckBot.Sandbox
     {
         public CS() { }
 
-        private static string Compile(string content)
+        private static string Compile(string content, CmdContext msg)
         {
             const string template = "using System;using System.Net;using System.Collections.Generic;using Discord;namespace DuckBot {public static class Script {public static string Code(string rawText,dynamic sender,dynamic server,dynamic channel){\n";
             string source = template + content + "}}}";
@@ -33,7 +33,7 @@ namespace DuckBot.Sandbox
                 if (!results.Errors.HasErrors) return Path.GetFullPath(pars.OutputAssembly);
                 else
                 {
-                    StringBuilder errors = new StringBuilder(Strings.err_compile + ": ");
+                    StringBuilder errors = new StringBuilder(msg.GetString("err_compile") + ": ");
                     errors.AppendFormat("{0},{1}: ``` {2} ```", results.Errors[0].Line - 1, results.Errors[0].Column, results.Errors[0].ErrorText);
                     throw new FormatException(errors.ToString());
                 }
@@ -60,14 +60,15 @@ namespace DuckBot.Sandbox
             string dll = null;
             try
             {
-                dll = Compile(content);
+                dll = Compile(content, msg);
                 app = AppDomain.CreateDomain(dll, null, setup, ps);
                 CS obj = (CS)app.CreateInstanceAndUnwrap(typeof(CS).Assembly.FullName, typeof(CS).FullName);
                 using (StringWriter sw = new StringWriter())
                 {
-                    sw.WriteLine(obj.Remote(CultureInfo.CurrentCulture, sw, dll, msg.Args, Proxy.GetProxy(msg.Sender), Proxy.GetProxy(msg.Server), Proxy.GetProxy(msg.Channel)));
+                    try { sw.WriteLine(obj.Remote(CultureInfo.CurrentCulture, sw, dll, msg.Args, Proxy.GetProxy(msg.Sender), Proxy.GetProxy(msg.Server), Proxy.GetProxy(msg.Channel))); }
+                    catch (TargetInvocationException) { return msg.GetString("err_scrtimeout"); }
                     string res = sw.ToString().Trim();
-                    return res.Length == 0 ? Strings.ret_empty_script : res;
+                    return res.Length == 0 ? msg.GetString("ret_empty_script") : res;
                 }
             }
             catch (FormatException ex) { return ex.Message; }
@@ -87,7 +88,7 @@ namespace DuckBot.Sandbox
             Assembly script = Assembly.LoadFrom(assembly);
             MethodInfo method = script.GetType("DuckBot.Script").GetMethod("Code");
             Task<string> task = Task.Run(() => (string)method.Invoke(null, new object[] { args, sender, server, channel }));
-            return task.Wait(90000) ? task.GetAwaiter().GetResult() : Strings.err_scrtimeout;
+            return task.Wait(90000) ? task.GetAwaiter().GetResult() : throw new TargetInvocationException(null);
         }
     }
 }
