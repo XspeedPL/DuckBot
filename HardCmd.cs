@@ -13,9 +13,9 @@ namespace DuckBot
         private byte ArgsMin { get; }
         private byte ArgsMax { get; }
         private bool AdminOnly { get; }
-        private string HelpText { get; }
+        private Func<CmdContext, string> HelpText { get; }
 
-        public HardCmd(byte minArgs, byte maxArgs, HardCmdHandler action, string helpText, bool requireAdmin = false)
+        public HardCmd(byte minArgs, byte maxArgs, HardCmdHandler action, Func<CmdContext, string> helpText, bool requireAdmin = false)
         {
             ArgsMin = minArgs; ArgsMax = maxArgs; Func = action; HelpText = helpText; AdminOnly = requireAdmin;
         }
@@ -48,18 +48,18 @@ namespace DuckBot
                         if (Program.Inst.IsAdvancedUser(msg.Sender.Id))
                         {
                             if (msg.Sender.Id != DuckData.SuperUserId && (args[2].Contains("Assembly") || args[2].Contains("System.IO") || args[2].Contains("Environment")))
-                                return Strings.err_badcode;
+                                return msg.GetString("err_badcode");
                         }
-                        else return Strings.err_permissions;
+                        else return msg.GetString("err_permissions");
                     }
                     else if (args[0].ToLower() == "whitelist")
                     {
                         if (msg.Sender.Id == DuckData.SuperUserId)
                         {
                             Program.Inst.AddAdvancedUser(ulong.Parse(args[1]));
-                            return Strings.ret_success;
+                            return msg.GetString("ret_success");
                         }
-                        else return Strings.err_permissions;
+                        else return msg.GetString("err_permissions");
                     }
                     string cmd = args[1].ToLowerInvariant(), oldContent = " ";
                     SoftCmd nc = new SoftCmd(args[0], args[2], msg.Sender.Username);
@@ -73,10 +73,10 @@ namespace DuckBot
                         else s.Cmds.Add(cmd, nc);
                     s.SetPending();
                     string toSend;
-                    if (s.ShowChanges) lock (s) toSend = string.Format(Strings.ret_changes, oldContent, s.Cmds[cmd].AsCodeBlock());
-                    else toSend = Strings.ret_success;
+                    if (s.ShowChanges) lock (s) toSend = string.Format(msg.GetString("ret_changes"), oldContent, s.Cmds[cmd].AsCodeBlock());
+                    else toSend = msg.GetString("ret_success");
                     return toSend;
-                }, string.Format("<{0}> <{1}> <{2}>", Strings.lab_type, Strings.lab_name, Strings.lab_content) + "`\n" + Strings.lab_type.StartCase() + ": `csharp, lua, switch, text", true)
+                }, (msg) => string.Format("<{0}> <{1}> <{2}>", msg.GetString("lab_type"), msg.GetString("lab_name"), msg.GetString("lab_content")) + "`\n" + msg.GetString("lab_type").StartCase() + ": `csharp, lua, switch, text", true)
             },
             { "remove", new HardCmd(1, 2, (args, msg) =>
                 {
@@ -89,14 +89,14 @@ namespace DuckBot
                         string log;
                         lock (s)
                         {
-                            log = s.ShowChanges ? "\n" + Strings.lab_content.StartCase() + ": " + s.Cmds[cmd].AsCodeBlock() : "";
+                            log = s.ShowChanges ? "\n" + msg.GetString("lab_content").StartCase() + ": " + s.Cmds[cmd].AsCodeBlock() : "";
                             s.Cmds.Remove(cmd);
                         }
                         s.SetPending();
-                        return string.Format(Strings.ret_removed, Strings.lab_cmd, cmd) + log;
+                        return string.Format(msg.GetString("ret_removed"), msg.GetString("lab_cmd"), cmd) + log;
                     }
-                    else return string.Format(Strings.err_nogeneric, Strings.lab_usercmd);
-                }, string.Format("<{0}>", Strings.lab_cmd), true)
+                    else return string.Format(msg.GetString("err_nogeneric"), msg.GetString("lab_usercmd"));
+                }, (msg) => string.Format("<{0}>", msg.GetString("lab_cmd")), true)
             },
             { "options", new HardCmd(1, 2, (args, msg) =>
                 {
@@ -104,21 +104,21 @@ namespace DuckBot
                     if (arg == "showchanges")
                     {
                         if (args.Length == 1)
-                            return FormatHelp("options showchanges", string.Format("<{0}>", Strings.lab_action) + "`\n" + Strings.lab_action.StartCase() + ": `enable, disable");
+                            return FormatHelp(msg, "options showchanges", string.Format("<{0}>", msg.GetString("lab_action")) + "`\n" + msg.GetString("lab_action").StartCase() + ": `enable, disable");
                         else if (args[1] == "enable") msg.Session.ShowChanges = true;
                         else if (args[1] == "disable") msg.Session.ShowChanges = false;
-                        else return Strings.err_nosubcmd;
+                        else return msg.GetString("err_nosubcmd");
                     }
                     else if (arg == "commandprefix")
                     {
                         if (args.Length == 1 || string.IsNullOrWhiteSpace(args[1]))
-                            return FormatHelp("options commandprefix", string.Format("<{0}>", Strings.lab_prefix));
+                            return FormatHelp(msg, "options commandprefix", string.Format("<{0}>", msg.GetString("lab_prefix")));
                         else msg.Session.CommandPrefix = args[1];
                     }
                     else if (arg == "musicchannel")
                     {
                         if (args.Length == 1 || string.IsNullOrWhiteSpace(args[1]))
-                            return FormatHelp("options musicchannel", string.Format("<{0}>", Strings.lab_channel));
+                            return FormatHelp(msg, "options musicchannel", string.Format("<{0}>", msg.GetString("lab_channel")));
                         else if (args[1].Equals("-"))
                         {
                             msg.Session.LeaveAudioAsync().GetAwaiter().GetResult();
@@ -135,19 +135,19 @@ namespace DuckBot
                                     found = true;
                                     break;
                                 }
-                            if (!found) return string.Format(Strings.err_nogeneric, Strings.lab_channel);
+                            if (!found) return string.Format(msg.GetString("err_nogeneric"), msg.GetString("lab_channel"));
                         }
                     }
                     else if (arg == "language")
                     {
                         if (args.Length == 1 || string.IsNullOrWhiteSpace(args[1]))
-                            return FormatHelp("options language", string.Format("<{0}>", Strings.lab_language));
-                        else if (!msg.Session.SetLanguage(args[1])) return Strings.err_nolanguage;
+                            return FormatHelp(msg, "options language", string.Format("<{0}>", msg.GetString("lab_language")));
+                        else if (!msg.Session.SetLanguage(args[1])) return msg.GetString("err_nolanguage");
                     }
-                    else return Strings.err_nosubcmd;
+                    else return msg.GetString("err_nosubcmd");
                     msg.Session.SetPending();
-                    return Strings.ret_success;
-                }, string.Format("<{0}>", Strings.lab_action) + "`\n" + Strings.lab_action.StartCase() + ": `language, musicchannel, showchanges", true)
+                    return msg.GetString("ret_success");
+                }, (msg) => string.Format("<{0}>", msg.GetString("lab_action")) + "`\n" + msg.GetString("lab_action").StartCase() + ": `language, musicchannel, showchanges", true)
             },
             { "inform", new HardCmd(2, 2, (args, msg) =>
                 {
@@ -158,14 +158,14 @@ namespace DuckBot
                         if (!message.StartsWith("`")) message = "`" + message + "`";
                         message = "`[" + DateTime.UtcNow.ToShortDateString() + "]` " + msg.Channel.Mention + ": " + message;
                         string removed = msg.Session.AddMessage(msg.Sender.Id, u.Id, message);
-                        string ret = string.Format(Strings.ret_delivery, u.Username);
+                        string ret = string.Format(msg.GetString("ret_delivery"), u.Username);
                         if (!string.IsNullOrWhiteSpace(removed))
-                            ret += "\n" + Strings.title_fullinbox + "\n" + removed;
+                            ret += "\n" + msg.GetString("title_fullinbox") + "\n" + removed;
                         msg.Session.SetPending();
                         return ret;
                     }
-                    else return string.Format(Strings.err_nogeneric, Strings.lab_user);
-                }, string.Format("<{0}> <{1}>", Strings.lab_user, Strings.lab_message))
+                    else return string.Format(msg.GetString("err_nogeneric"), msg.GetString("lab_user"));
+                }, (msg) => string.Format("<{0}> <{1}>", msg.GetString("lab_user"), msg.GetString("lab_message")))
             },
             { "help", new HardCmd(0, 2, (args, msg) =>
                 {
@@ -174,7 +174,7 @@ namespace DuckBot
                     if (args.Length > 0)
                     {
                         string cmd = args[0].ToLowerInvariant();
-                        if (dict.ContainsKey(cmd)) return FormatHelp(cmd, dict[cmd].HelpText);
+                        if (dict.ContainsKey(cmd)) return FormatHelp(msg, cmd, dict[cmd].HelpText(msg));
                         else
                         {
                             bool check;
@@ -185,38 +185,38 @@ namespace DuckBot
                                 lock (s)
                                 {
                                     SoftCmd c = s.Cmds[cmd];
-                                    ret = string.Format(Strings.ret_cmdinfo, cmd, c.CreationDate.ToShortDateString(), c.Creator);
-                                    ret += "\n" + Strings.lab_type.StartCase() + ": `" + c.Type + "`\n" + Strings.lab_content.StartCase() + ": " + c.AsCodeBlock();
+                                    ret = string.Format(msg.GetString("ret_cmdinfo"), cmd, c.CreationDate.ToShortDateString(), c.Creator);
+                                    ret += "\n" + msg.GetString("lab_type").StartCase() + ": `" + c.Type + "`\n" + msg.GetString("lab_content").StartCase() + ": " + c.AsCodeBlock();
                                 }
                                 return ret;
                             }
-                            else return string.Format(Strings.err_nogeneric, Strings.lab_cmd);
+                            else return string.Format(msg.GetString("err_nogeneric"), msg.GetString("lab_cmd"));
                         }
                     }
                     else
                     {
-                        string ret = Strings.title_hardcmdlist + "\n``` ";
+                        string ret = msg.GetString("title_hardcmdlist") + "\n``` ";
                         foreach (string cmd in new SortedSet<string>(dict.Keys))
                             ret += cmd + ", ";
                         ret = ret.Remove(ret.Length - 2) + " ```\n";
                         lock (s)
                             if (s.Cmds.Count > 0)
                             {
-                                ret += Strings.title_usercmdlist + "\n``` ";
+                                ret += msg.GetString("title_usercmdlist") + "\n``` ";
                                 foreach (string cmd in new SortedSet<string>(s.Cmds.Keys))
                                     ret += cmd + ", ";
                                 ret = ret.Remove(ret.Length - 2) + " ```\n";
                             }
                         return ret;
                     }
-                }, string.Format("[{0}]", Strings.lab_cmd))
+                }, (msg) => string.Format("[{0}]", msg.GetString("lab_cmd")))
             },
             { "var", new HardCmd(1, 2, (args, msg) =>
                 {
                     Session s = msg.Session;
                     if (args[0] == "list")
                     {
-                        string ret = Strings.title_varlist + "\n``` ";
+                        string ret = msg.GetString("title_varlist") + "\n``` ";
                         lock (s)
                             if (s.Vars.Count > 0)
                             {
@@ -232,16 +232,16 @@ namespace DuckBot
                         {
                             bool res;
                             lock (s) res = s.Vars.Remove(args[1]);
-                            return res ? string.Format(Strings.ret_removed, Strings.lab_var, args[1]) : string.Format(Strings.err_nogeneric, Strings.lab_var);
+                            return res ? string.Format(msg.GetString("ret_removed"), msg.GetString("lab_var"), args[1]) : string.Format(msg.GetString("err_nogeneric"), msg.GetString("lab_var"));
                         }
-                        else return Strings.err_params;
+                        else return msg.GetString("err_params");
                     }
-                    else return Strings.err_nosubcmd;
-                }, string.Format("<{0}> [{1}]", Strings.lab_action, Strings.lab_var) + "`\n" + Strings.lab_action.StartCase() + ": `list, remove", true)
+                    else return msg.GetString("err_nosubcmd");
+                }, (msg) => string.Format("<{0}> [{1}]", msg.GetString("lab_action"), msg.GetString("lab_var")) + "`\n" + msg.GetString("lab_action").StartCase() + ": `list, remove", true)
             },
             { "playsong", new HardCmd(1, 1, (args, msg) =>
                 {
-                    if (msg.Session.AudioPlayer == null) return Strings.err_generic;
+                    if (msg.Session.AudioPlayer == null) return msg.GetString("err_generic");
                     (string result, string song, string url) = Audio.SoundCloudAPI.Search(args[0]).GetAwaiter().GetResult();
                     if (song != null)
                     {
@@ -251,35 +251,35 @@ namespace DuckBot
                             if (!Program.Inst.End)
                             {
                                 string send;
-                                if (t.IsFaulted) send = Strings.err_generic + ' ' + t.Exception.Message;
-                                else send = string.Format(Strings.ret_songend, song);
+                                if (t.IsFaulted) send = msg.GetString("err_generic") + ' ' + t.Exception.Message;
+                                else send = string.Format(msg.GetString("ret_songend"), song);
                                 msg.Channel.SendMessageAsync(send);
                             }
                         });
                         return null;
                     }
                     else return result;
-                }, "<song-name>")
+                }, (msg) => "<song-name>")
             },
             { "stopsong", new HardCmd(0, 1, (args, msg) =>
                 {
-                    if (msg.Session.AudioPlayer == null) return Strings.err_generic;
+                    if (msg.Session.AudioPlayer == null) return msg.GetString("err_generic");
                     else msg.Session.AudioPlayer.StopAsync().GetAwaiter().GetResult();
-                    return Strings.ret_success;
-                }, "")
+                    return msg.GetString("ret_success");
+                }, (msg) => "")
             },
-            { "credits", new HardCmd(0, 1, (args, msg) => Strings.info_credits, "") }
+            { "credits", new HardCmd(0, 1, (args, msg) => msg.GetString("info_credits"), (msg) =>  "") }
         };
 
-        public static string FormatHelp(string cmdName, string cmdHelp)
+        public static string FormatHelp(CmdContext context, string cmdName, string cmdHelp)
         {
             if (cmdHelp == null) throw new ArgumentNullException("cmdHelp");
             string ret = "";
-            if (cmdHelp.Contains("<")) ret += "< > - " + Strings.lab_required + ", ";
-            if (cmdHelp.Contains("[")) ret += "[ ] - " + Strings.lab_optional + ", ";
-            if (cmdHelp.Contains("'")) ret += "' ' - " + Strings.lab_literal + ", ";
+            if (cmdHelp.Contains("<")) ret += "< > - " + context.GetString("lab_required") + ", ";
+            if (cmdHelp.Contains("[")) ret += "[ ] - " + context.GetString("lab_optional") + ", ";
+            if (cmdHelp.Contains("'")) ret += "' ' - " + context.GetString("lab_literal") + ", ";
             if (ret.Length > 2) ret = ret.Remove(ret.Length - 2);
-            return string.Format(Strings.ret_cmdhelp, cmdName, cmdHelp, ret);
+            return string.Format(context.GetString("ret_cmdhelp"), cmdName, cmdHelp, ret);
         }
     }
 }
