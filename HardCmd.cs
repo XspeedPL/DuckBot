@@ -242,10 +242,10 @@ namespace DuckBot
             { "playsong", new HardCmd(1, 1, (args, msg) =>
                 {
                     if (msg.Session.AudioPlayer == null) return msg.GetString("err_generic");
-                    (string result, string song, string url) = Audio.SoundCloudAPI.Search(args[0]).GetAwaiter().GetResult();
-                    if (song != null)
+                    (string song, string url) = Audio.SoundCloudAPI.Search(args[0]).GetAwaiter().GetResult();
+                    if (url != null)
                     {
-                        msg.Channel.SendMessageAsync(result);
+                        msg.Channel.SendMessageAsync(string.Format(msg.GetString("err_nosong"), song));
                         msg.Session.PlayAudioAsync(url).ContinueWith((t) =>
                         {
                             if (!Program.Inst.End)
@@ -255,10 +255,10 @@ namespace DuckBot
                                 else send = string.Format(msg.GetString("ret_songend"), song);
                                 msg.Channel.SendMessageAsync(send);
                             }
-                        });
+                        }).ConfigureAwait(false);
                         return null;
                     }
-                    else return result;
+                    else return string.Format(msg.GetString("ret_song"), args[0]);
                 }, (msg) => "<song-name>")
             },
             { "stopsong", new HardCmd(0, 1, (args, msg) =>

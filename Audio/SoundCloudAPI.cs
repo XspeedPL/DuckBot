@@ -9,7 +9,7 @@ namespace DuckBot.Audio
     {
         private const string CLIENT_ID = "client_id=cd3e093bf9688f09e3cdf15565fed8f3";
         
-        public static async Task<(string, string, string)> Search(string song)
+        public static async Task<(string, string)> Search(string song)
         {
             using (HttpClient hc = new HttpClient())
             {
@@ -32,7 +32,7 @@ namespace DuckBot.Audio
                             {
                                 if (used.Contains(item)) continue;
                                 else used.AddLast(item);
-                                return (string.Format(Resources.Strings.ret_song, item.Title), item.Title, item.URL + "?" + CLIENT_ID);
+                                return (item.Title, item.URL + "?" + CLIENT_ID);
                             }
                         }
                     }
@@ -43,7 +43,7 @@ namespace DuckBot.Audio
                             foreach (ResultItem ri in res)
                                 used.Remove(ri);
                     }
-                return (string.Format(Resources.Strings.err_nosong, song), null, null);
+                return (null, null);
             }
         }
 
