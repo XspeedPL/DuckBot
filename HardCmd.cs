@@ -245,7 +245,7 @@ namespace DuckBot
                     (string song, string url) = Audio.SoundCloudAPI.Search(args[0]).GetAwaiter().GetResult();
                     if (url != null)
                     {
-                        msg.Channel.SendMessageAsync(string.Format(msg.GetString("err_nosong"), song));
+                        msg.Channel.SendMessageAsync(string.Format(msg.GetString("ret_song"), song));
                         msg.Session.PlayAudioAsync(url).ContinueWith((t) =>
                         {
                             if (!Program.Inst.End)
@@ -258,7 +258,7 @@ namespace DuckBot
                         }).ConfigureAwait(false);
                         return null;
                     }
-                    else return string.Format(msg.GetString("ret_song"), args[0]);
+                    else return string.Format(msg.GetString("err_nosong"), args[0]);
                 }, (msg) => "<song-name>")
             },
             { "stopsong", new HardCmd(0, 1, (args, msg) =>
