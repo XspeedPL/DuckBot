@@ -166,6 +166,7 @@ namespace DuckBot
 
         internal async Task AutoJoinAudioAsync(Discord.IGuild srv)
         {
+            await Task.Delay(666);
             foreach (Discord.IVoiceChannel c in await srv.GetVoiceChannelsAsync())
                 if (c.Name.Equals(MusicChannel, System.StringComparison.OrdinalIgnoreCase))
                 {

@@ -132,7 +132,7 @@ namespace DuckBot
             client.GuildMemberUpdated += GuildMemberUpdated;
             client.GuildAvailable += (guild) =>
             {
-                Task.Run(async () => await CreateSession(guild).AutoJoinAudioAsync(guild));
+                CreateSession(guild).AutoJoinAudioAsync(guild).ConfigureAwait(false);
                 return Task.CompletedTask;
             };
             await client.LoginAsync(TokenType.Bot, token);
