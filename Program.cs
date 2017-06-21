@@ -26,7 +26,7 @@ namespace DuckBot
         internal Dictionary<string, HardCmd> HardCmds { get; private set; }
 
         public bool End { get; private set; }
-        
+
         static void Main()
         {
             ResourceManager = new ResourceManager("DuckBot.Resources.Strings", typeof(Resources.Strings).Assembly);
@@ -182,7 +182,7 @@ namespace DuckBot
                 if (s.Msgs.ContainsKey(after.Id))
                 {
                     Inbox i = s.Msgs[after.Id];
-                    IDMChannel toSend = await after.CreateDMChannelAsync();
+                    IDMChannel toSend = await after.GetOrCreateDMChannelAsync();
                     i.Deliver(s, after.Guild, toSend);
                     lock (s.Msgs) s.Msgs.Remove(after.Id);
                     s.SetPending();

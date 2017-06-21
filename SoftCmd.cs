@@ -2,7 +2,7 @@
 using System.IO;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using DuckBot.Resources;
+using DuckBot.DuckScript;
 
 namespace DuckBot
 {
@@ -124,7 +124,11 @@ namespace DuckBot
         {
             string content;
             lock (this) content = Content;
-            if (Type == CmdType.Text) return CmdEngine(content, context);
+            if (Type == CmdType.Text)
+            {
+                return CmdEngine(content, context);
+                //return new ScriptEvaluator(context).Evaluate(content);
+            }
             else if (Type == CmdType.Switch)
             {
                 string[] cases = EscSplit(content, '|');
