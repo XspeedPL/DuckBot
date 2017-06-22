@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Misc;
+using Antlr4.Runtime.Tree;
 
 namespace DuckBot.DuckScript
 {
@@ -19,7 +20,7 @@ namespace DuckBot.DuckScript
             DuckScriptLexer lexer = new DuckScriptLexer(input);
             CommonTokenStream stream = new CommonTokenStream(lexer);
             DuckScriptParser parser = new DuckScriptParser(stream);
-            return parser.content().Accept(this).ToString();
+            return Visit(parser.content()).ToString();
         }
 
         protected override StringBuilder AggregateResult(StringBuilder aggregate, StringBuilder nextResult) => aggregate.Append(nextResult);
@@ -32,7 +33,9 @@ namespace DuckBot.DuckScript
             string[] args = new string[data.Length];
             for (int i = data.Length - 1; i >= 0; --i)
                 args[i] = data[i].Accept(this).ToString();
-            return new StringBuilder(FuncVar.Run(context.FUNC_NAME().GetText(), args, Context));
+            return new StringBuilder(FuncVar.Run(context.IDENTIFIER().GetText(), args, Context));
         }
+
+        public override StringBuilder VisitTerminal(ITerminalNode node) => new StringBuilder(node.GetText());
     }
 }

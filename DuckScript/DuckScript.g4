@@ -1,16 +1,13 @@
 ﻿grammar DuckScript;
 
-content: (CONTENT | function)+;
+content: (IDENTIFIER | ESCAPE | EXTRAS | function)+;
 
-function: FUNC_START FUNC_NAME (ARG_PART content (ARG_SEPARATOR content)*)? FUNC_END;
+function: FUNC_START IDENTIFIER (ARG_PART content? (ARG_SEPARATOR content?)*)? FUNC_END;
 
+ESCAPE: '^' [{}:,];
 FUNC_START: '{';
-FUNC_NAME: [a-zA-Z0-9]+;
+IDENTIFIER: [a-zA-Z0-9]+;
 FUNC_END: '}';
-
 ARG_PART: ':';
 ARG_SEPARATOR: ',';
-
-ESC_CHAR: '\\';
-ESCAPE: ESC_CHAR (ARG_PART | ARG_SEPARATOR | FUNC_START | FUNC_END);
-CONTENT: (ESCAPE | ~[{}:,])+;
+EXTRAS: ~[a-zA-Z0-9{}:,]+;

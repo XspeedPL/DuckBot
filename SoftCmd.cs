@@ -103,33 +103,14 @@ namespace DuckBot
             return data;
         }
 
-        public static string CmdEngine(string content, CmdContext context) => Unescape(CmdEngine(content, context, 0));
-
-        private static string CmdEngine(string content, CmdContext context, int depth)
-        {
-            return depth > 10 || !content.Contains("{") ? content : CmdPattern.Replace(content, (match) =>
-            {
-                string cmd = match.Groups[1].Value;
-                if (FuncVar.Exists(cmd))
-                {
-                    string arg = match.Groups[2].Success ? match.Groups[2].Value.Substring(1) : null;
-                    if (arg != null) arg = CmdEngine(arg, context, depth + 1);
-                    return FuncVar.Run(cmd, arg == null ? new string[0] : EscSplit(arg, ','), context);
-                }
-                else return match.Value;
-            });
-        }
+        public static string CmdEngine(string content, CmdContext context) => Unescape(new ScriptEvaluator(context).Evaluate(content));
 
         public string Run(CmdContext context)
         {
+            if (context == null) throw new ArgumentNullException(nameof(context));
             string content;
             lock (this) content = Content;
-            if (Type == CmdType.Text)
-            {
-                return CmdEngine(content, context);
-                //return new ScriptEvaluator(context).Evaluate(content);
-            }
-            else if (Type == CmdType.Switch)
+            if (Type == CmdType.Switch)
             {
                 string[] cases = EscSplit(content, '|');
                 cases[0] = CmdEngine(cases[0].Trim(), context);
@@ -151,7 +132,7 @@ namespace DuckBot
             }
             else if (Type == CmdType.Lua) return Sandbox.Lua.Execute(content, context);
             else if (Type == CmdType.CSharp) return Sandbox.CS.Execute(content, context);
-            else throw new ArgumentOutOfRangeException(nameof(Type));
+            else return CmdEngine(content, context);
         }
     }
 }

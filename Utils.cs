@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using System.Globalization;
 using System.Threading.Tasks;
 using System.Resources;
@@ -58,5 +59,16 @@ namespace DuckBot
             if (ie == -1) return null;
             return input.Substring(ix, ie - ix);
         }
+
+        public static string ErrorCode(string error)
+        {
+            StringBuilder code = new StringBuilder(error);
+            for (int i = code.Length - 1; i > 0; --i)
+                if (char.IsUpper(code[i]))
+                    code.Insert(i--, '_');
+            return $"!{code.ToString().ToUpper()}_ERROR!";
+        }
+
+        public static string ErrorCode(this Exception ex) => ErrorCode(ex.GetType().Name);
     }
 }
