@@ -150,6 +150,9 @@
   <data name="err_scrtimeout" xml:space="preserve">
     <value>Przekroczono limit czasu wykonywania skryptu!</value>
   </data>
+  <data name="err_syntax" xml:space="preserve">
+    <value>Komenda nie mogła zostać przetworzona z powodu błędu składni.</value>
+  </data>
   <data name="exit_end" xml:space="preserve">
     <value>Czyste wyjście</value>
   </data>

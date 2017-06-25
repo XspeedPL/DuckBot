@@ -150,6 +150,9 @@
   <data name="err_scrtimeout" xml:space="preserve">
     <value>Script execution timed out!</value>
   </data>
+  <data name="err_syntax" xml:space="preserve">
+    <value>Command couldn't be parsed due to a syntax error.</value>
+  </data>
   <data name="exit_end" xml:space="preserve">
     <value>Exiting gracefully</value>
   </data>

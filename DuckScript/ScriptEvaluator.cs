@@ -9,17 +9,15 @@ namespace DuckBot.DuckScript
     {
         private CmdContext Context { get; }
 
-        public ScriptEvaluator(CmdContext ctx)
-        {
-            Context = ctx;
-        }
+        public ScriptEvaluator(CmdContext ctx) => Context = ctx;
 
         public string Evaluate(string script)
         {
+            if (string.IsNullOrEmpty(script)) return "";
             AntlrInputStream input = new AntlrInputStream(script);
             DuckScriptLexer lexer = new DuckScriptLexer(input);
             CommonTokenStream stream = new CommonTokenStream(lexer);
-            DuckScriptParser parser = new DuckScriptParser(stream);
+            DuckScriptParser parser = new DuckScriptParser(stream) { ErrorHandler = new BailErrorStrategy() };
             return Visit(parser.content()).ToString();
         }
 

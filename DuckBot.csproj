@@ -77,13 +77,13 @@
       <HintPath>packages\CSCore.1.2.1.1\lib\net35-client\CSCore.dll</HintPath>
     </Reference>
     <Reference Include="Discord.Net.Core, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\Discord.Net.Core.1.0.0-rc3-00757\lib\net45\Discord.Net.Core.dll</HintPath>
+      <HintPath>packages\Discord.Net.Core.1.0.0-rc3-00768\lib\net45\Discord.Net.Core.dll</HintPath>
     </Reference>
     <Reference Include="Discord.Net.Rest, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\Discord.Net.Rest.1.0.0-rc3-00757\lib\net45\Discord.Net.Rest.dll</HintPath>
+      <HintPath>packages\Discord.Net.Rest.1.0.0-rc3-00768\lib\net45\Discord.Net.Rest.dll</HintPath>
     </Reference>
     <Reference Include="Discord.Net.WebSocket, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\Discord.Net.WebSocket.1.0.0-rc3-00757\lib\net45\Discord.Net.WebSocket.dll</HintPath>
+      <HintPath>packages\Discord.Net.WebSocket.1.0.0-rc3-00768\lib\net45\Discord.Net.WebSocket.dll</HintPath>
     </Reference>
     <Reference Include="KeraLua, Version=1.3.2.0, Culture=neutral, PublicKeyToken=04d04586786c6f34, processorArchitecture=MSIL">
       <HintPath>packages\NLua.1.3.2.1\lib\net45\KeraLua.dll</HintPath>
@@ -217,7 +217,12 @@
   <ItemGroup>
     <Compile Include="Audio\AudioStreamer.cs" />
     <Compile Include="Audio\SoundCloudAPI.cs" />
+    <Antlr4 Include="DuckScript\DuckSwitch.g4">
+      <Generator>MSBuild:Compile</Generator>
+      <CustomToolNamespace>DuckBot.DuckScript</CustomToolNamespace>
+    </Antlr4>
     <Compile Include="DuckScript\ScriptEvaluator.cs" />
+    <Compile Include="DuckScript\SwitchEvaluator.cs" />
     <Compile Include="FuncVar.cs" />
     <Compile Include="HardCmd.cs" />
     <Compile Include="ICmd.cs" />

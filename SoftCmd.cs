@@ -103,36 +103,21 @@ namespace DuckBot
             return data;
         }
 
-        public static string CmdEngine(string content, CmdContext context) => Unescape(new ScriptEvaluator(context).Evaluate(content));
+        public static string ScriptEngine(string content, CmdContext context) => Unescape(new ScriptEvaluator(context).Evaluate(content));
 
         public string Run(CmdContext context)
         {
             if (context == null) throw new ArgumentNullException(nameof(context));
             string content;
             lock (this) content = Content;
-            if (Type == CmdType.Switch)
+            try
             {
-                string[] cases = EscSplit(content, '|');
-                cases[0] = CmdEngine(cases[0].Trim(), context);
-                for (int i = 1; i < cases.Length; ++i)
-                {
-                    cases[i] = cases[i].Trim();
-                    if (cases[i].StartsWith("default"))
-                        return CmdEngine(cases[i].Substring(cases[i].IndexOf(' ') + 1), context);
-                    else if (cases[i].StartsWith("case"))
-                    {
-                        string match = cases[i].Substring(cases[i].IndexOf('"') + 1);
-                        int ix = match.IndexOf('"');
-                        string data = match.Substring(ix + 1).Trim();
-                        if (cases[0] == CmdEngine(match.Remove(ix), context))
-                            return CmdEngine(data, context);
-                    }
-                }
-                return "Switch " + context.GetString("ret_empty");
+                if (Type == CmdType.Switch) return new SwitchEvaluator(context).Evaluate(content) ?? "Switch " + context.GetString("ret_empty");
+                else if (Type == CmdType.Lua) return Sandbox.Lua.Execute(content, context);
+                else if (Type == CmdType.CSharp) return Sandbox.CS.Execute(content, context);
+                else return ScriptEngine(content, context);
             }
-            else if (Type == CmdType.Lua) return Sandbox.Lua.Execute(content, context);
-            else if (Type == CmdType.CSharp) return Sandbox.CS.Execute(content, context);
-            else return CmdEngine(content, context);
+            catch (OperationCanceledException) { return context.GetString("err_syntax"); }
         }
     }
 }

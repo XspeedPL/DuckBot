@@ -79,7 +79,7 @@ namespace DuckBot
                     return "";
                 }
             },
-            { "eval", (args, msg) => SoftCmd.CmdEngine(SoftCmd.Unescape(string.Join(",", args)), msg) },
+            { "eval", (args, msg) => SoftCmd.ScriptEngine(SoftCmd.Unescape(string.Join(",", args)), msg) },
             { "find", (args, msg) => args[0].IndexOf(args[1]).ToString() },
             { "replace", (args, msg) => args[0].Replace(args[1], args.Length >= 3 ? args[2] : "") },
             { "calc", (args, msg) =>

@@ -160,6 +160,15 @@ namespace DuckBot.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Command couldn&apos;t be parsed due to a syntax error..
+        /// </summary>
+        internal static string err_syntax {
+            get {
+                return ResourceManager.GetString("err_syntax", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Exiting gracefully.
         /// </summary>
         internal static string exit_end {
