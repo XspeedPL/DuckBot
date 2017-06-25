@@ -187,8 +187,9 @@ namespace DuckBot.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Bot written by: **Xspeed** and **EchoDuck**
+        ///   Looks up a localized string similar to Bot written by: **Xspeed**
         ///*Credits:*
+        /// EchoNex - Original idea
         /// Discord.Net - RogueException
         /// Castle.Core - Castle Project Team
         /// CSCore - Florian Rosmann

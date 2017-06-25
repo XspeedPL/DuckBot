@@ -160,8 +160,9 @@
     <value>Shutting down DuckBot...</value>
   </data>
   <data name="info_credits" xml:space="preserve">
-    <value>Bot written by: **Xspeed** and **EchoDuck**
+    <value>Bot written by: **Xspeed**
 *Credits:*
+ EchoNex - Original idea
  Discord.Net - RogueException
  Castle.Core - Castle Project Team
  CSCore - Florian Rosmann

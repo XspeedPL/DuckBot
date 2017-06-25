@@ -160,8 +160,9 @@
     <value>Zamykanie DuckBota...</value>
   </data>
   <data name="info_credits" xml:space="preserve">
-    <value>Bot napisany przez: **Xspeed** i **EchoDuck**
+    <value>Bot napisany przez: **Xspeed**
 *Podziękowania:*
+ EchoNex - Pierwotny pomysł
  Discord.Net - RogueException
  Castle.Core - Ekipa Castle Project
  CSCore - Florian Rosmann
