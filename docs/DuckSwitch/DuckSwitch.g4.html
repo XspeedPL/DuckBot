@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>DuckSwitch.g4</title>
+<style type="text/css">
+body { 
+  color: #000;
+  font-family: sans-serif;
+  font-size: 12px;
+  margin: 20px 5px 10px 20px;
+}
+/* resets */
+ul {
+  list-style: none;
+  padding: 0;
+}
+a {
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+img {
+  border: 0;
+}
+.clear {
+  clear: both;
+}
+.container {
+  position: relative;
+}
+/* Grammar name */
+h1 {
+  font-size: 20px;
+}
+/*Grammar documentation*/
+.gdoc {
+  margin-left: 20px;
+  margin-bottom: 20px;
+}
+#index {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200px;
+  overflow: auto;
+}
+#index h2 {
+  margin: 0;
+}
+#index ol {
+  padding-left: 30px;
+  list-style-type: square;
+  color: #364559;
+}
+#index ol li {
+  margin: 2px 0;
+}
+#index ol li a {
+  color: #366199;
+  font-family: monospace;
+}
+#rules {
+  margin-left: 210px;
+  padding-left: 20px;
+  border-left: 1px solid #AAA;
+}
+.rule {
+  margin-bottom: 30px;
+}
+/* Rule name*/
+.rule h3 {
+  color: #364559;
+  background-color: #DADFE6;
+  font-size: 16px;
+  font-weight: bold;
+  padding: 4px 5px;
+  border-bottom: 1px solid #828B99;
+}
+.rule h3 a.topLink {
+  font-family: sans-serif;
+  font-size: 10px;
+  color: #000;
+  margin-left: 20px;
+}
+.rule h3, .rule .ebnf div {
+  font-family: monospace;
+}
+/* Sections: ebnf, railroad*/
+.doc, .ebnf, .railroad {
+  padding-left: 20px;
+}
+.doc h4, .ebnf h4, .railroad h4 {
+  font-size: 12px;
+  margin: 15px 0 10px -20px;
+}
+.ebnf div {
+  background-color: #F7F7F7;
+  border-top: 1px solid #E8E8E8;
+  border-bottom: 1px solid #E8E8E8;
+  padding: 10px 5px;
+}
+.ebnf div .literal {
+  color: #0000FF;
+}
+.ebnf div .keyword {
+  color: #7F0055;
+  font-weight: bold;
+}
+.ebnf div .rule {
+  color: #004084;
+  font-weight: bold;
+}
+.ebnf div .token {
+  font-style:italic;
+}
+.railroad img {
+  display: block;
+}
+footer {
+  float: right;
+}
+</style>
+</head>
+<body>
+<h1><a href="DuckSwitch.g4.html" name="top">DuckSwitch</a></h1>
+<p class="gdoc"></p>
+<div class="container">
+<div id="index">
+<h2>Rules</h2>
+<ol>
+  <li><a href="#content">content</a></li>
+  <li><a href="#optionCase">optionCase</a></li>
+  <li><a href="#optionDefault">optionDefault</a></li>
+  <li><a href="#value">value</a></li>
+  <li><a href="#CASE">CASE</a></li>
+  <li><a href="#DEFAULT">DEFAULT</a></li>
+  <li><a href="#QUOTE">QUOTE</a></li>
+  <li><a href="#ESCAPE">ESCAPE</a></li>
+  <li><a href="#CASESEP">CASESEP</a></li>
+  <li><a href="#SPACES">SPACES</a></li>
+  <li><a href="#LITERALS">LITERALS</a></li>
+</ol>
+</div>
+
+<div id="rules">
+<ul>
+  <li class="rule" id="content">
+  <h3>content <a class="topLink" title="Go to top" href="DuckSwitch.g4.html">Top</a></h3>
+  <div class="doc">
+    <p>
+    </p>
+  </div>
+  <div class="ebnf">
+  <h4>Text notation:</h4>
+  <div>
+    <span class="rule">content</span> :  <a href="#value" class="rule">value</a> <a href="#optionCase" class="rule">optionCase</a><span class="operator">+</span> <a href="#optionDefault" class="rule">optionDefault</a><span class="operator">?</span> ;
+  </div>
+  </div>
+  <div class="railroad">
+  <h4>Visual notation:</h4>
+  <img border="0" src="images/content.png" />
+  </div>
+  </li>
+  <li class="rule" id="optionCase">
+  <h3>optionCase <a class="topLink" title="Go to top" href="DuckSwitch.g4.html">Top</a></h3>
+  <div class="doc">
+    <p>
+    </p>
+  </div>
+  <div class="ebnf">
+  <h4>Text notation:</h4>
+  <div>
+    <span class="rule">optionCase</span> :  <a href="#CASESEP" class="token">CASESEP</a> <a href="#SPACES" class="token">SPACES</a> <a href="#CASE" class="token">CASE</a> <a href="#SPACES" class="token">SPACES</a> <a href="#QUOTE" class="token">QUOTE</a> <a href="#value" class="rule">value</a><span class="operator">?</span> <a href="#QUOTE" class="token">QUOTE</a> <a href="#SPACES" class="token">SPACES</a><span class="operator">?</span> <a href="#value" class="rule">value</a><span class="operator">?</span> ;
+  </div>
+  </div>
+  <div class="railroad">
+  <h4>Visual notation:</h4>
+  <img border="0" src="images/optionCase.png" />
+  </div>
+  </li>
+  <li class="rule" id="optionDefault">
+  <h3>optionDefault <a class="topLink" title="Go to top" href="DuckSwitch.g4.html">Top</a></h3>
+  <div class="doc">
+    <p>
+    </p>
+  </div>
+  <div class="ebnf">
+  <h4>Text notation:</h4>
+  <div>
+    <span class="rule">optionDefault</span> :  <a href="#CASESEP" class="token">CASESEP</a> <a href="#SPACES" class="token">SPACES</a> <a href="#DEFAULT" class="token">DEFAULT</a> <a href="#SPACES" class="token">SPACES</a><span class="operator">?</span> <a href="#value" class="rule">value</a><span class="operator">?</span> ;
+  </div>
+  </div>
+  <div class="railroad">
+  <h4>Visual notation:</h4>
+  <img border="0" src="images/optionDefault.png" />
+  </div>
+  </li>
+  <li class="rule" id="value">
+  <h3>value <a class="topLink" title="Go to top" href="DuckSwitch.g4.html">Top</a></h3>
+  <div class="doc">
+    <p>
+    </p>
+  </div>
+  <div class="ebnf">
+  <h4>Text notation:</h4>
+  <div>
+    <span class="rule">value</span> :  <span class="operator">(</span><a href="#LITERALS" class="token">LITERALS</a> <span class="operator">|</span> <a href="#QUOTE" class="token">QUOTE</a><span class="operator">+</span> <span class="operator">|</span> <a href="#ESCAPE" class="token">ESCAPE</a><span class="operator">+</span> <span class="operator">|</span> <a href="#SPACES" class="token">SPACES</a><span class="operator">)</span><span class="operator">+</span> ;
+  </div>
+  </div>
+  <div class="railroad">
+  <h4>Visual notation:</h4>
+  <img border="0" src="images/value.png" />
+  </div>
+  </li>
+  <li class="rule" id="CASE">
+  <h3>CASE <a class="topLink" title="Go to top" href="DuckSwitch.g4.html">Top</a></h3>
+  <div class="doc">
+    <p>
+    </p>
+  </div>
+  <div class="ebnf">
+  <h4>Text notation:</h4>
+  <div>
+    <span class="rule">CASE</span> :  <span class="literal">'case'</span> ;
+  </div>
+  </div>
+  <div class="railroad">
+  <h4>Visual notation:</h4>
+  <img border="0" src="images/CASE.png" />
+  </div>
+  </li>
+  <li class="rule" id="DEFAULT">
+  <h3>DEFAULT <a class="topLink" title="Go to top" href="DuckSwitch.g4.html">Top</a></h3>
+  <div class="doc">
+    <p>
+    </p>
+  </div>
+  <div class="ebnf">
+  <h4>Text notation:</h4>
+  <div>
+    <span class="rule">DEFAULT</span> :  <span class="literal">'default'</span> ;
+  </div>
+  </div>
+  <div class="railroad">
+  <h4>Visual notation:</h4>
+  <img border="0" src="images/DEFAULT.png" />
+  </div>
+  </li>
+  <li class="rule" id="QUOTE">
+  <h3>QUOTE <a class="topLink" title="Go to top" href="DuckSwitch.g4.html">Top</a></h3>
+  <div class="doc">
+    <p>
+    </p>
+  </div>
+  <div class="ebnf">
+  <h4>Text notation:</h4>
+  <div>
+    <span class="rule">QUOTE</span> :  <span class="literal">'"'</span> ;
+  </div>
+  </div>
+  <div class="railroad">
+  <h4>Visual notation:</h4>
+  <img border="0" src="images/QUOTE.png" />
+  </div>
+  </li>
+  <li class="rule" id="ESCAPE">
+  <h3>ESCAPE <a class="topLink" title="Go to top" href="DuckSwitch.g4.html">Top</a></h3>
+  <div class="doc">
+    <p>
+    </p>
+  </div>
+  <div class="ebnf">
+  <h4>Text notation:</h4>
+  <div>
+    <span class="rule">ESCAPE</span> :  <span class="literal">'^|'</span> ;
+  </div>
+  </div>
+  <div class="railroad">
+  <h4>Visual notation:</h4>
+  <img border="0" src="images/ESCAPE.png" />
+  </div>
+  </li>
+  <li class="rule" id="CASESEP">
+  <h3>CASESEP <a class="topLink" title="Go to top" href="DuckSwitch.g4.html">Top</a></h3>
+  <div class="doc">
+    <p>
+    </p>
+  </div>
+  <div class="ebnf">
+  <h4>Text notation:</h4>
+  <div>
+    <span class="rule">CASESEP</span> :  <span class="literal">'|'</span> ;
+  </div>
+  </div>
+  <div class="railroad">
+  <h4>Visual notation:</h4>
+  <img border="0" src="images/CASESEP.png" />
+  </div>
+  </li>
+  <li class="rule" id="SPACES">
+  <h3>SPACES <a class="topLink" title="Go to top" href="DuckSwitch.g4.html">Top</a></h3>
+  <div class="doc">
+    <p>
+    </p>
+  </div>
+  <div class="ebnf">
+  <h4>Text notation:</h4>
+  <div>
+    <span class="rule">SPACES</span> :  [<span class="literal"> \t</span>]<span class="operator">+</span> ;
+  </div>
+  </div>
+  <div class="railroad">
+  <h4>Visual notation:</h4>
+  <img border="0" src="images/SPACES.png" />
+  </div>
+  </li>
+  <li class="rule" id="LITERALS">
+  <h3>LITERALS <a class="topLink" title="Go to top" href="DuckSwitch.g4.html">Top</a></h3>
+  <div class="doc">
+    <p>
+    </p>
+  </div>
+  <div class="ebnf">
+  <h4>Text notation:</h4>
+  <div>
+    <span class="rule">LITERALS</span> :  <span class="operator">~</span>[<span class="literal">"| \t</span>]<span class="operator">+</span> ;
+  </div>
+  </div>
+  <div class="railroad">
+  <h4>Visual notation:</h4>
+  <img border="0" src="images/LITERALS.png" />
+  </div>
+  </li>
+</ul>
+</div>
+</div>
+<footer>Generated by: <a href="https://github.com/jknack/antlr4ide">ANTLR 4 IDE</a>. Copyright (c) 2013 <a href="https://twitter.com/edgarespina">Edgar Espina</a></footer>
+</body>
+</html>

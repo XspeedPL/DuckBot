@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>DuckScript.g4</title>
+<style type="text/css">
+body { 
+  color: #000;
+  font-family: sans-serif;
+  font-size: 12px;
+  margin: 20px 5px 10px 20px;
+}
+/* resets */
+ul {
+  list-style: none;
+  padding: 0;
+}
+a {
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+img {
+  border: 0;
+}
+.clear {
+  clear: both;
+}
+.container {
+  position: relative;
+}
+/* Grammar name */
+h1 {
+  font-size: 20px;
+}
+/*Grammar documentation*/
+.gdoc {
+  margin-left: 20px;
+  margin-bottom: 20px;
+}
+#index {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200px;
+  overflow: auto;
+}
+#index h2 {
+  margin: 0;
+}
+#index ol {
+  padding-left: 30px;
+  list-style-type: square;
+  color: #364559;
+}
+#index ol li {
+  margin: 2px 0;
+}
+#index ol li a {
+  color: #366199;
+  font-family: monospace;
+}
+#rules {
+  margin-left: 210px;
+  padding-left: 20px;
+  border-left: 1px solid #AAA;
+}
+.rule {
+  margin-bottom: 30px;
+}
+/* Rule name*/
+.rule h3 {
+  color: #364559;
+  background-color: #DADFE6;
+  font-size: 16px;
+  font-weight: bold;
+  padding: 4px 5px;
+  border-bottom: 1px solid #828B99;
+}
+.rule h3 a.topLink {
+  font-family: sans-serif;
+  font-size: 10px;
+  color: #000;
+  margin-left: 20px;
+}
+.rule h3, .rule .ebnf div {
+  font-family: monospace;
+}
+/* Sections: ebnf, railroad*/
+.doc, .ebnf, .railroad {
+  padding-left: 20px;
+}
+.doc h4, .ebnf h4, .railroad h4 {
+  font-size: 12px;
+  margin: 15px 0 10px -20px;
+}
+.ebnf div {
+  background-color: #F7F7F7;
+  border-top: 1px solid #E8E8E8;
+  border-bottom: 1px solid #E8E8E8;
+  padding: 10px 5px;
+}
+.ebnf div .literal {
+  color: #0000FF;
+}
+.ebnf div .keyword {
+  color: #7F0055;
+  font-weight: bold;
+}
+.ebnf div .rule {
+  color: #004084;
+  font-weight: bold;
+}
+.ebnf div .token {
+  font-style:italic;
+}
+.railroad img {
+  display: block;
+}
+footer {
+  float: right;
+}
+</style>
+</head>
+<body>
+<h1><a href="DuckScript.g4.html" name="top">DuckScript</a></h1>
+<p class="gdoc"></p>
+<div class="container">
+<div id="index">
+<h2>Rules</h2>
+<ol>
+  <li><a href="#content">content</a></li>
+  <li><a href="#function">function</a></li>
+  <li><a href="#ESCAPE">ESCAPE</a></li>
+  <li><a href="#FUNC_START">FUNC_START</a></li>
+  <li><a href="#IDENTIFIER">IDENTIFIER</a></li>
+  <li><a href="#FUNC_END">FUNC_END</a></li>
+  <li><a href="#ARG_PART">ARG_PART</a></li>
+  <li><a href="#ARG_SEPARATOR">ARG_SEPARATOR</a></li>
+  <li><a href="#EXTRAS">EXTRAS</a></li>
+</ol>
+</div>
+
+<div id="rules">
+<ul>
+  <li class="rule" id="content">
+  <h3>content <a class="topLink" title="Go to top" href="DuckScript.g4.html">Top</a></h3>
+  <div class="doc">
+    <p>
+    </p>
+  </div>
+  <div class="ebnf">
+  <h4>Text notation:</h4>
+  <div>
+    <span class="rule">content</span> :  <span class="operator">(</span><a href="#IDENTIFIER" class="token">IDENTIFIER</a> <span class="operator">|</span> <a href="#ESCAPE" class="token">ESCAPE</a> <span class="operator">|</span> <a href="#EXTRAS" class="token">EXTRAS</a> <span class="operator">|</span> <a href="#function" class="rule">function</a><span class="operator">)</span><span class="operator">+</span> ;
+  </div>
+  </div>
+  <div class="railroad">
+  <h4>Visual notation:</h4>
+  <img border="0" src="images/content.png" />
+  </div>
+  </li>
+  <li class="rule" id="function">
+  <h3>function <a class="topLink" title="Go to top" href="DuckScript.g4.html">Top</a></h3>
+  <div class="doc">
+    <p>
+    </p>
+  </div>
+  <div class="ebnf">
+  <h4>Text notation:</h4>
+  <div>
+    <span class="rule">function</span> :  <a href="#FUNC_START" class="token">FUNC_START</a> <a href="#IDENTIFIER" class="token">IDENTIFIER</a> <span class="operator">(</span><a href="#ARG_PART" class="token">ARG_PART</a> <a href="#content" class="rule">content</a><span class="operator">?</span> <span class="operator">(</span><a href="#ARG_SEPARATOR" class="token">ARG_SEPARATOR</a> <a href="#content" class="rule">content</a><span class="operator">?</span><span class="operator">)</span><span class="operator">*</span><span class="operator">)</span><span class="operator">?</span> <a href="#FUNC_END" class="token">FUNC_END</a> ;
+  </div>
+  </div>
+  <div class="railroad">
+  <h4>Visual notation:</h4>
+  <img border="0" src="images/function.png" />
+  </div>
+  </li>
+  <li class="rule" id="ESCAPE">
+  <h3>ESCAPE <a class="topLink" title="Go to top" href="DuckScript.g4.html">Top</a></h3>
+  <div class="doc">
+    <p>
+    </p>
+  </div>
+  <div class="ebnf">
+  <h4>Text notation:</h4>
+  <div>
+    <span class="rule">ESCAPE</span> :  <span class="literal">'^'</span> [<span class="literal">{}:,</span>] ;
+  </div>
+  </div>
+  <div class="railroad">
+  <h4>Visual notation:</h4>
+  <img border="0" src="images/ESCAPE.png" />
+  </div>
+  </li>
+  <li class="rule" id="FUNC_START">
+  <h3>FUNC_START <a class="topLink" title="Go to top" href="DuckScript.g4.html">Top</a></h3>
+  <div class="doc">
+    <p>
+    </p>
+  </div>
+  <div class="ebnf">
+  <h4>Text notation:</h4>
+  <div>
+    <span class="rule">FUNC_START</span> :  <span class="literal">'{'</span> ;
+  </div>
+  </div>
+  <div class="railroad">
+  <h4>Visual notation:</h4>
+  <img border="0" src="images/FUNC_START.png" />
+  </div>
+  </li>
+  <li class="rule" id="IDENTIFIER">
+  <h3>IDENTIFIER <a class="topLink" title="Go to top" href="DuckScript.g4.html">Top</a></h3>
+  <div class="doc">
+    <p>
+    </p>
+  </div>
+  <div class="ebnf">
+  <h4>Text notation:</h4>
+  <div>
+    <span class="rule">IDENTIFIER</span> :  [<span class="literal">a-zA-Z0-9</span>]<span class="operator">+</span> ;
+  </div>
+  </div>
+  <div class="railroad">
+  <h4>Visual notation:</h4>
+  <img border="0" src="images/IDENTIFIER.png" />
+  </div>
+  </li>
+  <li class="rule" id="FUNC_END">
+  <h3>FUNC_END <a class="topLink" title="Go to top" href="DuckScript.g4.html">Top</a></h3>
+  <div class="doc">
+    <p>
+    </p>
+  </div>
+  <div class="ebnf">
+  <h4>Text notation:</h4>
+  <div>
+    <span class="rule">FUNC_END</span> :  <span class="literal">'}'</span> ;
+  </div>
+  </div>
+  <div class="railroad">
+  <h4>Visual notation:</h4>
+  <img border="0" src="images/FUNC_END.png" />
+  </div>
+  </li>
+  <li class="rule" id="ARG_PART">
+  <h3>ARG_PART <a class="topLink" title="Go to top" href="DuckScript.g4.html">Top</a></h3>
+  <div class="doc">
+    <p>
+    </p>
+  </div>
+  <div class="ebnf">
+  <h4>Text notation:</h4>
+  <div>
+    <span class="rule">ARG_PART</span> :  <span class="literal">':'</span> ;
+  </div>
+  </div>
+  <div class="railroad">
+  <h4>Visual notation:</h4>
+  <img border="0" src="images/ARG_PART.png" />
+  </div>
+  </li>
+  <li class="rule" id="ARG_SEPARATOR">
+  <h3>ARG_SEPARATOR <a class="topLink" title="Go to top" href="DuckScript.g4.html">Top</a></h3>
+  <div class="doc">
+    <p>
+    </p>
+  </div>
+  <div class="ebnf">
+  <h4>Text notation:</h4>
+  <div>
+    <span class="rule">ARG_SEPARATOR</span> :  <span class="literal">','</span> ;
+  </div>
+  </div>
+  <div class="railroad">
+  <h4>Visual notation:</h4>
+  <img border="0" src="images/ARG_SEPARATOR.png" />
+  </div>
+  </li>
+  <li class="rule" id="EXTRAS">
+  <h3>EXTRAS <a class="topLink" title="Go to top" href="DuckScript.g4.html">Top</a></h3>
+  <div class="doc">
+    <p>
+    </p>
+  </div>
+  <div class="ebnf">
+  <h4>Text notation:</h4>
+  <div>
+    <span class="rule">EXTRAS</span> :  <span class="operator">~</span>[<span class="literal">a-zA-Z0-9{}:,</span>]<span class="operator">+</span> ;
+  </div>
+  </div>
+  <div class="railroad">
+  <h4>Visual notation:</h4>
+  <img border="0" src="images/EXTRAS.png" />
+  </div>
+  </li>
+</ul>
+</div>
+</div>
+<footer>Generated by: <a href="https://github.com/jknack/antlr4ide">ANTLR 4 IDE</a>. Copyright (c) 2013 <a href="https://twitter.com/edgarespina">Edgar Espina</a></footer>
+</body>
+</html>
