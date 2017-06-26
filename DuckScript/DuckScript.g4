@@ -11,4 +11,4 @@ IDENTIFIER: [a-zA-Z0-9]+;
 FUNC_END: '}';
 ARG_PART: ':';
 ARG_SEPARATOR: ',';
-VALUE: (~[{}:,^] | '^' [{}:,])+;
+VALUE: (~[{}:,^|] | '^' [{}:,^|])+;
