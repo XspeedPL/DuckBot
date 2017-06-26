@@ -73,7 +73,7 @@ namespace DuckBot
                         else s.Cmds.Add(cmd, nc);
                     s.SetPending();
                     string toSend;
-                    if (s.ShowChanges) lock (s) toSend = string.Format(msg.GetString("ret_changes"), oldContent, s.Cmds[cmd].AsCodeBlock());
+                    if (s.ShowChanges) lock (s) toSend = msg.GetString("ret_changes", oldContent, s.Cmds[cmd].AsCodeBlock());
                     else toSend = msg.GetString("ret_success");
                     return toSend;
                 }, (msg) => string.Format("<{0}> <{1}> <{2}>", msg.GetString("lab_type"), msg.GetString("lab_name"), msg.GetString("lab_content")) + "`\n" + msg.GetString("lab_type").StartCase() + ": `csharp, lua, switch, text", true)
@@ -93,9 +93,9 @@ namespace DuckBot
                             s.Cmds.Remove(cmd);
                         }
                         s.SetPending();
-                        return string.Format(msg.GetString("ret_removed"), msg.GetString("lab_cmd"), cmd) + log;
+                        return msg.GetString("ret_removed", msg.GetString("lab_cmd"), cmd) + log;
                     }
-                    else return string.Format(msg.GetString("err_nogeneric"), msg.GetString("lab_usercmd"));
+                    else return msg.GetString("err_nogeneric", msg.GetString("lab_usercmd"));
                 }, (msg) => string.Format("<{0}>", msg.GetString("lab_cmd")), true)
             },
             { "options", new HardCmd(1, 2, (args, msg) =>
@@ -135,7 +135,7 @@ namespace DuckBot
                                     found = true;
                                     break;
                                 }
-                            if (!found) return string.Format(msg.GetString("err_nogeneric"), msg.GetString("lab_channel"));
+                            if (!found) return msg.GetString("err_nogeneric", msg.GetString("lab_channel"));
                         }
                     }
                     else if (arg == "language")
@@ -158,13 +158,13 @@ namespace DuckBot
                         if (!message.StartsWith("`")) message = "`" + message + "`";
                         message = "`[" + DateTime.UtcNow.ToShortDateString() + "]` " + msg.Channel.Mention + ": " + message;
                         string removed = msg.Session.AddMessage(msg.Sender.Id, u.Id, message);
-                        string ret = string.Format(msg.GetString("ret_delivery"), u.Username);
+                        string ret = msg.GetString("ret_delivery", u.Username);
                         if (!string.IsNullOrWhiteSpace(removed))
                             ret += "\n" + msg.GetString("title_fullinbox") + "\n" + removed;
                         msg.Session.SetPending();
                         return ret;
                     }
-                    else return string.Format(msg.GetString("err_nogeneric"), msg.GetString("lab_user"));
+                    else return msg.GetString("err_nogeneric", msg.GetString("lab_user"));
                 }, (msg) => string.Format("<{0}> <{1}>", msg.GetString("lab_user"), msg.GetString("lab_message")))
             },
             { "help", new HardCmd(0, 2, (args, msg) =>
@@ -185,12 +185,12 @@ namespace DuckBot
                                 lock (s)
                                 {
                                     SoftCmd c = s.Cmds[cmd];
-                                    ret = string.Format(msg.GetString("ret_cmdinfo"), cmd, c.CreationDate.ToShortDateString(), c.Creator);
+                                    ret = msg.GetString("ret_cmdinfo", cmd, c.CreationDate.ToShortDateString(), c.Creator);
                                     ret += "\n" + msg.GetString("lab_type").StartCase() + ": `" + c.Type + "`\n" + msg.GetString("lab_content").StartCase() + ": " + c.AsCodeBlock();
                                 }
                                 return ret;
                             }
-                            else return string.Format(msg.GetString("err_nogeneric"), msg.GetString("lab_cmd"));
+                            else return msg.GetString("err_nogeneric", msg.GetString("lab_cmd"));
                         }
                     }
                     else
@@ -232,7 +232,7 @@ namespace DuckBot
                         {
                             bool res;
                             lock (s) res = s.Vars.Remove(args[1]);
-                            return res ? string.Format(msg.GetString("ret_removed"), msg.GetString("lab_var"), args[1]) : string.Format(msg.GetString("err_nogeneric"), msg.GetString("lab_var"));
+                            return res ? msg.GetString("ret_removed", msg.GetString("lab_var"), args[1]) : msg.GetString("err_nogeneric", msg.GetString("lab_var"));
                         }
                         else return msg.GetString("err_params");
                     }
@@ -245,20 +245,20 @@ namespace DuckBot
                     (string song, string url) = Audio.SoundCloudAPI.Search(args[0]).GetAwaiter().GetResult();
                     if (url != null)
                     {
-                        msg.Channel.SendMessageAsync(string.Format(msg.GetString("ret_song"), song));
+                        msg.Channel.SendMessageAsync(msg.GetString("ret_song", song));
                         msg.Session.PlayAudioAsync(url).ContinueWith((t) =>
                         {
                             if (!Program.Inst.End)
                             {
                                 string send;
                                 if (t.IsFaulted) send = msg.GetString("err_generic") + ' ' + t.Exception.Message;
-                                else send = string.Format(msg.GetString("ret_songend"), song);
+                                else send = msg.GetString("ret_songend", song);
                                 msg.Channel.SendMessageAsync(send);
                             }
                         }).ConfigureAwait(false);
                         return null;
                     }
-                    else return string.Format(msg.GetString("err_nosong"), args[0]);
+                    else return msg.GetString("err_nosong", args[0]);
                 }, (msg) => "<song-name>")
             },
             { "stopsong", new HardCmd(0, 1, (args, msg) =>
@@ -279,7 +279,7 @@ namespace DuckBot
             if (cmdHelp.Contains("[")) ret += "[ ] - " + context.GetString("lab_optional") + ", ";
             if (cmdHelp.Contains("'")) ret += "' ' - " + context.GetString("lab_literal") + ", ";
             if (ret.Length > 2) ret = ret.Remove(ret.Length - 2);
-            return string.Format(context.GetString("ret_cmdhelp"), cmdName, cmdHelp, ret);
+            return context.GetString("ret_cmdhelp", cmdName, cmdHelp, ret);
         }
     }
 }

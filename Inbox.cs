@@ -56,7 +56,7 @@ namespace DuckBot
                 foreach (KeyValuePair<ulong, string[]> kvp in queue)
                 {
                     string sender = guild.GetUserAsync(kvp.Key).GetAwaiter().GetResult().Username;
-                    string msg = string.Format(session.GetString("title_inbox"), sender);
+                    string msg = session.GetString("title_inbox", sender);
                     for (int i = 0; i < 5; ++i)
                     {
                         if (!string.IsNullOrWhiteSpace(kvp.Value[i]))
