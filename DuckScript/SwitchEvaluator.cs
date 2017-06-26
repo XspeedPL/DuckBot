@@ -23,30 +23,21 @@ namespace DuckBot.DuckScript
 
         protected override string DefaultResult => "";
 
-        public override string VisitTerminal(ITerminalNode node) => node.GetText();
-
-        public override string VisitValue([NotNull] DuckSwitchParser.ValueContext context)
-        {
-            string text = context.GetText();
-            if (text.EndsWith("\r\n")) text = text.Remove(text.Length - 2);
-            else if (text.EndsWith("\n")) text = text.Remove(text.Length - 1);
-            return ScriptEvaluator.Evaluate(text);
-        }
-
         public override string VisitContent([NotNull] DuckSwitchParser.ContentContext context)
         {
-            string switchVal = context.value().Accept(this);
+            string switchVal = context.VALUE().GetText();
             foreach (DuckSwitchParser.OptionCaseContext optCase in context.optionCase())
             {
-                DuckSwitchParser.ValueContext[] values = optCase.value();
+                ITerminalNode[] values = optCase.VALUE();
                 if (switchVal.Equals(ValueOrEmpty(values[0])))
                 {
-                    return ValueOrEmpty(values.Length > 1 ? values[1] : null);
+                    return values.Length > 1 ? ValueOrEmpty(values[1]) : "";
                 }
             }
-            return context.optionDefault()?.value().Accept(this);
+            DuckSwitchParser.OptionDefaultContext optDef = context.optionDefault();
+            return optDef == null ? null : ValueOrEmpty(optDef.VALUE());
         }
 
-        private string ValueOrEmpty(DuckSwitchParser.ValueContext value) => value == null ? "" : value.Accept(this);
+        private string ValueOrEmpty(ITerminalNode value) => value == null ? "" : value.GetText();
     }
 }

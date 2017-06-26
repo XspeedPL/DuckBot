@@ -1,18 +1,15 @@
 ﻿grammar DuckSwitch;
 
-content: value optionCase+ optionDefault?;
+content: VALUE optionCase+ optionDefault? EOF;
 
-optionCase: CASESEP SPACES CASE SPACES QUOTE value? QUOTE SPACES? value?;
-optionDefault: CASESEP SPACES DEFAULT SPACES? value?;
+optionCase: CASE QUOTE VALUE? QUOTE VALUE?;
+optionDefault: DEFAULT VALUE?;
 
-value: (LITERALS | QUOTE+ | ESCAPE+ | SPACES)+;
-
-CASE: 'case';
-DEFAULT: 'default';
+CASE: '|' [ \t]* 'case';
+DEFAULT: '|' [ \t]* 'default';
 
 QUOTE: '"';
-ESCAPE: '^|';
-CASESEP: '|';
-SPACES: [ \t]+;
 
-LITERALS: ~["| \t]+;
+WS: [ \t\r\n]+ -> skip;
+
+VALUE: (~["| \t\r\n] | '^'["|])((~["|] | '^'["|])*(~["| \t\r\n] | '^'["|]))?;

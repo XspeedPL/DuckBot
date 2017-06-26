@@ -13,12 +13,11 @@ namespace DuckBot.DuckScript
 
         public string Evaluate(string script)
         {
-            if (string.IsNullOrEmpty(script)) return "";
             AntlrInputStream input = new AntlrInputStream(script);
             DuckScriptLexer lexer = new DuckScriptLexer(input);
             CommonTokenStream stream = new CommonTokenStream(lexer);
             DuckScriptParser parser = new DuckScriptParser(stream) { ErrorHandler = new BailErrorStrategy() };
-            return Visit(parser.content()).ToString();
+            return Visit(parser.script()).ToString();
         }
 
         protected override StringBuilder AggregateResult(StringBuilder aggregate, StringBuilder nextResult) => aggregate.Append(nextResult);
