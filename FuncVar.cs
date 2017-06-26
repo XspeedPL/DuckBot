@@ -117,6 +117,13 @@ namespace DuckBot
                         return "";
                     }
                 }
+            },
+            { "or", (args, msg) =>
+                {
+                    for (int i = 0; i < args.Length; ++i)
+                        if (!string.IsNullOrEmpty(args[i]) && !args[i].EndsWith("_ERROR!")) return args[i];
+                    return Utils.ErrorCode("AllFailed");
+                }
             }
         };
 

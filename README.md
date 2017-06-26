@@ -20,12 +20,15 @@ For more information about command usage use the help section command described 
 * `stopsong` - Immediately stops playing a song, if there's one playing
 
 ## Command scripting syntax
-Text contained within a script is outputted exactly as it is, with the exception of a few special characters.  
-Those characters are: `{`, `,` and `|`. The first two are used to execute functions.  
-The last is used to construct a Switch-type command. More on that later.  
+Text contained within a script is outputted exactly as it is, with the exception of a few special constructs.  
+Those constructs are marked following characters: `{`, `:`, `,`, `}` and `|`. The first four are used to execute functions.  
+The last is used to create a Switch-type command. More on that later.  
 Special characters can be escaped by using the `^` character.  
 Functions share the following syntax: `{func_name:arg_1,arg_2,...}`.  
 All functions have a specified minimum amount of arguments, if more than neccessary are passed to the function, they are ignored.  
+In case a function doesn't receive enough arguments or another problem occurs the function returns an error string (ie. `!FORMAT_ERROR!`).  
+Functions may also be passed as arguments to another function to create nested constructs. Take note that arguments are evaluated only when actually used, in example:  
+When evaluating a construct such as: `{input:0,{calc:2+2}}`, the `{calc}` function will never be called, because `{input}` uses only one argument.
 
 ### Available functions:
 * `{calc:expr}` - Calculates the value of given expression (for syntax look [here on MSDN](https://msdn.microsoft.com/en-us/library/system.data.datacolumn.expression(v=vs.71).aspx))
@@ -37,12 +40,14 @@ All functions have a specified minimum amount of arguments, if more than neccess
 * `{find:str,val}` - Returns the position of first occurence of `val` inside `str` string, or -1 if none were found
 * `{if:str1,str2,match,else}` - Compares `str1` with `str2` and returns `match` or `else` based on whether they match or not
 * `{img:url}` - Attempts to post an image downloaded from the specified URL
+  * *NOTE: the image will appear before any other text*
 * `{input}` - Returns the text passed by the user with the command
   * `{input:n}` - Returns only the `n`-th word of the text
 * `{length:str}` - Returns the length of the `str` string
 * `{mention}` - Returns a mention to the user who sent the command
   * `{mention:user}` - Returns a mention to a user with specified name
 * `{nickOrUser}` - Returns the nickname of the user who sent the command, if the user has no nickname his name is returned instead
+* `{or:opt1,...,optN}` - Returns first element from the argument list that is not empty and not an error
 * `{rand:max}` - Returns a random number between 0 and `max`-1
   * `{rand:min,max}` - Returns a random number between `min` and `max`-1
 * `{replace:str,patrn,repl}` - Replaces all occurences of `patrn` in `str` with `repl`
@@ -55,37 +60,27 @@ All functions have a specified minimum amount of arguments, if more than neccess
 ### Special functions:
 * `{get:var}` - Returns the contents of variable `var`
 * `{set:var,value}` - Sets a variable named `var` to `value` in the current server session, returns nothing
-  * *Special note: variables with names prefixed by `_` are not persisted between bot runs!*
+  * *NOTE: variables with names prefixed by `_` are not persisted between bot runs!*
 
 ## Switch construction
 Switches can help compacting a series of `{if}` functions and have a following syntax:  
 ```
-COMPARED_VALUE
-| case "value1" script1
-| case "value2" script2
-| default script3
+value_to_compare
+| case "value_1" result_value_1
+| case "value_2" result_value_2
+| default result_value_default
 ```  
-All values can be scripts too!  
+Everything except `case` and `default` keywords may contain scripts.  
+Default case is optional but recommended.  
 
 ## Lua scripts
 Lua scripts run inside a sandboxed environment.  
-Inside the environment it's possible to access a few parameters:
+Inside the environment it's possible to access the following parameters:
 * `channel` - The object of the channel the command was sent from
 * `rawText` - The text passed by the user with the command
 * `sender` - The object of user who sent the command
 * `server` - The current server object
 
-## C\# scripts
-At the moment only users approved by a superuser (hardcoded as EchoNex) are able to create C# scripts due to experimental sandboxed environment, which could possibly allow malicious code to harm the server.  
-Command contents are wrapped inside the following template and executed:
-```cs
-using System; using System.Collections.Generic;
-using System.Net; using DuckBot.Sandbox;
-namespace DuckBot {
-    public static class Script {
-        public static string Code(string rawText, User sender, Server server, Channel channel) {
-            // Contents inserted here
-}   }   }
-```  
+Lists of those objects' accessible fields and methods can be found in Discord.Net documentation and are subject to change.  
 
 ## Have fun using the bot!
