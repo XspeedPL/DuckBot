@@ -151,7 +151,7 @@
     <value>Przekroczono limit czasu wykonywania skryptu!</value>
   </data>
   <data name="err_syntax" xml:space="preserve">
-    <value>Komenda nie mogła zostać przetworzona z powodu błędu składni.</value>
+    <value>Błąd składni przy analizowaniu komendy. Nieoczekiwany znacznik `{0}` w {1},{2}.</value>
   </data>
   <data name="exit_end" xml:space="preserve">
     <value>Czyste wyjście</value>

@@ -187,6 +187,8 @@ namespace DuckBot
             catch { }
         }
 
-        public string GetString(string name, params object[] args) => string.Format(Program.ResourceManager.GetString(name, Language), args);
+        public string GetString(string name) => Program.ResourceManager.GetString(name, Language);
+
+        public string GetString(string name, params object[] args) => string.Format(GetString(name), args);
     }
 }

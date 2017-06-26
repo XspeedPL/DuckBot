@@ -160,7 +160,7 @@ namespace DuckBot.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Command couldn&apos;t be parsed due to a syntax error..
+        ///   Looks up a localized string similar to Syntax error while parsing command. Unexpected token `{0}` at {1},{2}..
         /// </summary>
         internal static string err_syntax {
             get {

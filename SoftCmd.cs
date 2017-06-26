@@ -117,7 +117,15 @@ namespace DuckBot
                 else if (Type == CmdType.CSharp) return Sandbox.CS.Execute(content, context);
                 else return ScriptEngine(content, context);
             }
-            catch (OperationCanceledException) { return context.GetString("err_syntax"); }
+            catch (OperationCanceledException ex)
+            {
+                if (ex.InnerException is Antlr4.Runtime.RecognitionException inner)
+                {
+                    return context.GetString("err_syntax", inner.OffendingToken.Text, inner.OffendingToken.Column, inner.OffendingToken.Line);
+                }
+                // TODO: Wrap and throw Lua and C# compilation errors and catch them here
+                else return context.GetString("err_syntax", null, null, null);
+            }
         }
     }
 }

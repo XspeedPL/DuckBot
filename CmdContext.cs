@@ -43,6 +43,8 @@ namespace DuckBot
             AdvancedUser = copy.AdvancedUser;
         }
 
+        public string GetString(string name) => Session.GetString(name);
+
         public string GetString(string name, params object[] args) => Session.GetString(name, args);
     }
 }

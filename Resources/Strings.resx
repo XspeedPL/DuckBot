@@ -151,7 +151,7 @@
     <value>Script execution timed out!</value>
   </data>
   <data name="err_syntax" xml:space="preserve">
-    <value>Command couldn't be parsed due to a syntax error.</value>
+    <value>Syntax error while parsing command. Unexpected token `{0}` at {1},{2}.</value>
   </data>
   <data name="exit_end" xml:space="preserve">
     <value>Exiting gracefully</value>
