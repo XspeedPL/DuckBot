@@ -1,5 +1,5 @@
 # DuckBot
-![DuckBot Logo](http://i66.tinypic.com/33yhvnr.png)  
+![DuckBot Logo](DuckBot.png)  
 DuckBot is a Discord bot with it's own functional-style scripting language, DuckScript.  
 With DuckBot users are able to define their own commands using the scripting language mentioned above, Lua or C\# for all possible needs and purposes.  
 Now with built-in audio player!  
